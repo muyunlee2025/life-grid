@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Life Grid</title>
+    <style>
+        :root {
+            --bg-color: #f2f2f0;
+            --ink-color: #2c3e50;
+            --empty-color: #e3e3e3;
+            --accent-color: #c0392b; 
+            --milestone-color: #2980b9; 
+            /* 新增：出生周颜色 (日出金) */
+            --birth-color: #f39c12; 
+            --text-muted: #7f8c8d;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--ink-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+            height: 100dvh; 
+            overflow: hidden; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 1s ease-out;
+        }
+
+        /* --- 电脑端布局 --- */
+        .layout {
+            display: flex;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1400px;
+            gap: 60px;
+            align-items: center;
+        }
+        .sidebar {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: left;
+            min-width: 300px;
+            animation: fadeIn 1s ease-out 0.2s backwards;
+            position: relative;
+        }
+        .grid-container {
+            flex: 1.5; 
+            height: 100%; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 1.2s ease-out 0.5s backwards;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(52, 1fr);
+            height: 100%; 
+            aspect-ratio: 52 / 80; 
+            gap: 2px;
+            width: 100%;
+        }
+        .cell {
+            background-color: var(--empty-color);
+            border-radius: 0.5px;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .cell.past { background-color: var(--ink-color); }
+        .cell.current { 
+            background-color: var(--accent-color);
+            box-shadow: 0 0 8px var(--accent-color);
+            z-index: 2;
+        }
+        .cell.milestone { background-color: var(--milestone-color) !important; z-index: 1; }
+        
+        /* 新增：出生周样式 */
+        .cell.birth { 
+            background-color: var(--birth-color) !important; 
+            z-index: 3; 
+        }
+
+        .cell:hover { transform: scale(1.8); z-index: 10; background-color: #dcdcdc; border-radius: 2px; }
+        .cell.milestone:hover { transform: scale(2); z-index: 15; background-color: var(--milestone-color) !important; box-shadow: 0 4px 10px rgba(41, 128, 185, 0.4); }
+        /* 出生周悬停效果 */
+        .cell.birth:hover {
+            transform: scale(2);
+            z-index: 15;
+            background-color: var(--birth-color) !important;
+            box-shadow: 0 4px 10px rgba(243, 156, 18, 0.4);
+        }
+
+        h1 { font-size: 2rem; font-weight: 400; letter-spacing: 1px; margin-bottom: 30px; text-transform: uppercase; color: var(--ink-color); }
+        .soul-text { font-size: 1rem; line-height: 2; color: #666; margin-bottom: 40px; border-left: 3px solid var(--accent-color); padding-left: 20px; }
+        .soul-text strong.black { color: var(--ink-color); font-weight: 600; }
+        .soul-text strong.red { color: var(--accent-color); font-weight: 600; }
+        .input-group label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 8px; color: #999; font-weight: 600; }
+        input[type="date"] { background: transparent; border: none; border-bottom: 1px solid #ccc; font-size: 1.5rem; color: var(--ink-color); font-family: inherit; cursor: pointer; padding: 5px 0; outline: none; width: 100%; max-width: 220px; }
+        .stats { margin-top: 20px; font-size: 0.9rem; color: #666; line-height: 1.5; }
+        
+        .hover-info { height: 30px; margin-top: 15px; font-weight: bold; font-size: 0.9rem; color: var(--accent-color); display: flex; align-items: center; }
+        .hover-info.blue-text { color: var(--milestone-color); }
+        /* 新增：金色文字样式 */
+        .hover-info.gold-text { color: var(--birth-color); }
+
+        .data-actions, .help-section { opacity: 0.4; transition: opacity 0.3s ease; }
+        .data-actions:hover, .help-section:hover, .help-section.active { opacity: 1; }
+        .data-actions { margin-top: 40px; display: flex; gap: 15px; }
+        .action-btn { background: none; border: 1px solid var(--text-muted); color: var(--text-muted); font-size: 0.7rem; padding: 4px 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; border-radius: 2px; font-family: inherit; }
+        #fileInput { display: none; }
+        .help-section { margin-top: 30px; font-size: 0.85rem; color: var(--text-muted); }
+        .help-trigger { cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: 500; }
+        .help-content { display: none; margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 4px; line-height: 1.6; color: #555; }
+        .help-content.show { display: block; animation: fadeIn 0.3s; }
+        .mobile-visible { display: none; }
+        .mobile-hidden { display: inline; }
+
+        /* =========================================
+           📱 移动端适配
+           ========================================= */
+        @media (max-width: 768px) {
+            body {
+                display: block; 
+                height: auto;
+                min-height: 100vh;
+                overflow-y: scroll;
+                padding: 40px 25px;
+                padding-top: max(40px, env(safe-area-inset-top));
+            }
+
+            .layout {
+                flex-direction: column;
+                width: 100%;
+                height: auto;
+                max-width: 500px; 
+                margin: 0 auto;
+                gap: 40px;
+                padding-bottom: 120px;
+            }
+
+            .sidebar { width: 100%; padding-bottom: 0; min-width: 0; }
+            h1 { font-size: 1.6rem; margin-bottom: 25px; }
+            .soul-text { font-size: 0.95rem; line-height: 1.8; margin-bottom: 30px; border-left-width: 2px; padding-left: 15px; }
+            .mobile-hidden { display: none; }
+            .mobile-visible { display: block; }
+            input[type="date"] { width: 100%; max-width: 100%; border-radius: 0; }
+
+            .grid-container {
+                display: block;
+                width: 100%;
+                height: auto;
+                aspect-ratio: unset;
+            }
+            
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(52, 1fr);
+                width: 100%;
+                height: auto;
+                aspect-ratio: unset;
+                gap: 1px;
+            }
+
+            .cell {
+                width: 100%;
+                height: 0 !important; 
+                padding-bottom: 100%;
+                position: relative;
+            }
+
+            .cell.selected {
+                transform: scale(1.4);
+                z-index: 20;
+                box-shadow: 0 0 0 1px rgba(255,255,255,0.8), 0 4px 10px rgba(0,0,0,0.2);
+            }
+
+            .hover-info {
+                position: fixed;
+                bottom: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: max-content;
+                max-width: 85%;
+                background: var(--accent-color);
+                color: #fff;
+                padding: 12px 20px;
+                border-radius: 30px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s;
+                z-index: 9999;
+                bottom: max(30px, env(safe-area-inset-bottom));
+                white-space: nowrap;
+                font-size: 0.85rem;
+            }
+            .hover-info.blue-text { color: #fff; background: var(--milestone-color); }
+            /* 新增：手机端金色背景 */
+            .hover-info.gold-text { color: #fff; background: var(--birth-color); }
+            .hover-info:not(:empty) { opacity: 1; }
+
+            .data-actions, .help-section { margin-top: 20px; opacity: 0.6; }
+        }
+        
+        @media print {
+            body { background-color: #fff; height: auto; overflow: visible; display: block; padding: 0; }
+            .layout { width: 100%; height: auto; max-width: none; flex-direction: column; align-items: flex-start; gap: 20px; padding: 40px; }
+            .input-group, .hover-info, input, .data-actions, .help-section { display: none !important; }
+            .input-group::after { content: "DATE OF BIRTH: 1995-01-01"; display: block; font-size: 0.9rem; color: #000; margin-top: 10px; }
+            .sidebar, .grid-container { animation: none; width: 100%; }
+            .cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding-bottom: 0; height: 100%; }
+            .soul-text { border-color: #000; color: #000; }
+            h1 { color: #000; }
+            .grid { aspect-ratio: 52 / 80; gap: 1px; border: 1px solid #eee; }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h1>LIFE WEEKS</h1>
+            <div class="soul-text">
+                <span class="mobile-hidden">
+                    80 年，4,160 周。<br>
+                    <strong class="black">黑色</strong>是已逝的记忆，
+                    <strong class="black">白色</strong>是无限的可能。<br>
+                    那个闪烁的<strong class="red">红色</strong>，就是现在。
+
+                    <br><br>
+                    <!-- 不要只是看着它们消失。<br>
+                    Fill them with life. -->
+                    Make it count.
+                </span>
+                <span class="mobile-visible">
+                    80 年，4,160 周。<br>
+                    那个闪烁的<strong class="red">红色</strong>，就是现在。<br>
+                    Make it count.
+                </span>
+            </div>
+            <div class="input-group">
+                <label>DATE OF BIRTH</label>
+                <input type="date" id="birthdate" value="1995-01-01">
+            </div>
+            <div class="stats" id="stats"></div>
+            
+            <!-- <div class="help-section" id="helpSection">
+                <div class="help-trigger" onclick="toggleHelp()">
+                    > 使用说明
+                </div>
+                <div class="help-content" id="helpContent">
+                    <strong>📱 手机端操作：</strong><br>
+                    • <strong>轻点一次</strong>：选中格子，查看年份与年龄。<br>
+                    • <strong>再次点击</strong>：对当前格子进行编辑。<br>
+                    • <strong>点击空白</strong>：取消选中。
+                </div>
+            </div>
+
+            <div class="data-actions">
+                <button class="action-btn" onclick="exportData()">Export</button>
+                <button class="action-btn" onclick="document.getElementById('fileInput').click()">Import</button>
+                <input type="file" id="fileInput" accept=".json" onchange="importData(this)">
+            </div> -->
+
+            <div class="hover-info" id="hoverInfo"></div>
+        </aside>
+        <main class="grid-container">
+            <div id="grid" class="grid"></div>
+        </main>
+    </div>
+
+<script>
+    const gridEl = document.getElementById('grid');
+    const dateInput = document.getElementById('birthdate');
+    const statsEl = document.getElementById('stats');
+    const hoverInfoEl = document.getElementById('hoverInfo');
+    
+    const TOTAL_YEARS = 80;
+    const WEEKS_PER_YEAR = 52;
+    const TOTAL_WEEKS = TOTAL_YEARS * WEEKS_PER_YEAR;
+
+    let milestones = JSON.parse(localStorage.getItem('lifeGridMilestones')) || {};
+    const savedBirthdate = localStorage.getItem('lifeGridBirthdate');
+    if (savedBirthdate) { dateInput.value = savedBirthdate; }
+    
+    let lastClickedIndex = -1;
+
+    function saveMilestones() {
+        localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
+    }
+
+    function toggleHelp() {
+        const content = document.getElementById('helpContent');
+        const section = document.getElementById('helpSection');
+        content.classList.toggle('show');
+        section.classList.toggle('active');
+        
+        if (window.innerWidth <= 768 && content.classList.contains('show')) {
+             if (lastClickedIndex !== -1) {
+                hoverInfoEl.textContent = '';
+                const prev = document.querySelector('.cell.selected');
+                if (prev) prev.classList.remove('selected');
+                lastClickedIndex = -1;
+            }
+        }
+    }
+
+    function exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(milestones));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "life-grid-data.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function importData(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (typeof importedData === 'object') {
+                    if (confirm('Importing will overwrite current data. Continue?')) {
+                        milestones = importedData;
+                        saveMilestones();
+                        renderGrid();
+                        alert('Data imported successfully.');
+                    }
+                }
+            } catch (error) { alert('Error reading file.'); }
+        };
+        reader.readAsText(file);
+        input.value = '';
+    }
+
+    function renderGrid() {
+        gridEl.innerHTML = '';
+        const birthdate = new Date(dateInput.value);
+        const today = new Date();
+        localStorage.setItem('lifeGridBirthdate', dateInput.value);
+        
+        const oneWeek = 1000 * 60 * 60 * 24 * 7;
+        let diffWeeks = Math.floor((today - birthdate) / oneWeek);
+        if (diffWeeks < 0) diffWeeks = 0;
+        if (diffWeeks > TOTAL_WEEKS) diffWeeks = TOTAL_WEEKS;
+
+        const leftWeeks = TOTAL_WEEKS - diffWeeks;
+        const percentage = ((diffWeeks / TOTAL_WEEKS) * 100).toFixed(1);
+        
+        statsEl.innerHTML = `
+            Used: <strong>${diffWeeks}</strong> weeks (${percentage}%)<br>
+            Remaining: <strong>${leftWeeks}</strong> weeks
+        `;
+
+        const fragment = document.createDocumentFragment();
+
+        for (let i = 0; i < TOTAL_WEEKS; i++) {
+            const div = document.createElement('div');
+            div.className = 'cell';
+            const age = Math.floor(i / WEEKS_PER_YEAR);
+            const year = birthdate.getFullYear() + age;
+            const isMilestone = milestones[i] ? true : false;
+            const isPast = i < diffWeeks;
+            const isCurrent = i === diffWeeks;
+            const isBirth = (i === 0); // 核心逻辑：第一周是出生周
+
+            // 样式优先级：出生 > 里程碑 > 现在 > 过去/未来
+            if (isPast) div.classList.add('past');
+            else if (isCurrent) div.classList.add('current');
+            else div.classList.add('future');
+
+            if (isBirth) div.classList.add('birth'); // 添加金色类
+            else if (isMilestone) div.classList.add('milestone'); // 如果是出生周，优先显示出生色，否则显示里程碑色
+
+            const updateInfo = () => {
+                hoverInfoEl.classList.remove('blue-text', 'gold-text');
+                
+                if (isBirth) {
+                   // 出生周特殊文案
+                   hoverInfoEl.textContent = `👶 Born in ${year}`;
+                   hoverInfoEl.classList.add('gold-text');
+                } else if (isMilestone) {
+                    hoverInfoEl.textContent = `📌 ${milestones[i]} (Age ${age})`;
+                    hoverInfoEl.classList.add('blue-text'); 
+                } else if (isPast) {
+                    hoverInfoEl.textContent = `${year} (Age ${age})`;
+                } else if (isCurrent) {
+                    hoverInfoEl.textContent = `NOW · 此刻`;
+                } else {
+                    hoverInfoEl.textContent = `${year} (Age ${age})`;
+                }
+            };
+
+            const triggerEdit = () => {
+                setTimeout(() => {
+                    const currentVal = milestones[i] || '';
+                    let promptText = '';
+                    
+                    if (isBirth) promptText = `Edit birth note (Clear to delete):`; // 出生周特殊提示
+                    else if (currentVal) promptText = `Edit note (Clear to delete):`;
+                    else if (isPast) promptText = `Record a memory for Age ${age} (${year}):`;
+                    else promptText = `Set a goal for Age ${age} (${year}):`;
+
+                    const input = prompt(promptText, currentVal);
+                    if (input !== null) {
+                        if (input.trim() === '') delete milestones[i]; 
+                        else milestones[i] = input.trim(); 
+                        saveMilestones(); 
+                        renderGrid(); 
+                    }
+                }, 50);
+            };
+
+            div.addEventListener('mouseenter', updateInfo);
+
+            div.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (window.innerWidth <= 768) {
+                    if (lastClickedIndex !== i) {
+                        updateInfo();
+                        const prev = document.querySelector('.cell.selected');
+                        if (prev) prev.classList.remove('selected');
+                        div.classList.add('selected');
+                        lastClickedIndex = i;
+                    } else {
+                        triggerEdit();
+                        div.classList.remove('selected');
+                        lastClickedIndex = -1;
+                    }
+                } else {
+                    updateInfo();
+                    triggerEdit();
+                }
+            });
+
+            fragment.appendChild(div);
+        }
+        gridEl.appendChild(fragment);
+
+        gridEl.addEventListener('mouseleave', () => {
+            if (window.innerWidth > 768) hoverInfoEl.textContent = ''; 
+        });
+        
+        document.body.addEventListener('click', (e) => {
+            if (e.target.closest('.help-trigger') || e.target.closest('.action-btn')) return;
+            
+            if (window.innerWidth <= 768 && !e.target.classList.contains('cell')) {
+                if (lastClickedIndex !== -1) {
+                    hoverInfoEl.textContent = '';
+                    const prev = document.querySelector('.cell.selected');
+                    if (prev) prev.classList.remove('selected');
+                    lastClickedIndex = -1;
+                }
+                const helpContent = document.getElementById('helpContent');
+                if (helpContent.classList.contains('show')) {
+                    toggleHelp();
+                }
+            }
+        });
+    }
+    renderGrid();
+    dateInput.addEventListener('change', renderGrid);
+</script>
+</body>
+</html>
