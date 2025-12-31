@@ -46,7 +46,8 @@
         .input-group label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 8px; color: #999; font-weight: 600; }
         input[type="date"] { background: transparent; border: none; border-bottom: 1px solid #ccc; font-size: 1.5rem; color: var(--ink-color); font-family: inherit; cursor: pointer; padding: 5px 0; width: 100%; max-width: 220px; }
         .stats { margin-top: 20px; font-size: 0.9rem; color: #666; line-height: 1.5; }
-        
+        .soul-text strong.red { color: var(--accent-color); font-weight: 600; }
+
         .hover-info { height: 30px; margin-top: 15px; font-weight: bold; font-size: 0.9rem; color: var(--accent-color); display: flex; align-items: center; }
         .hover-info.blue-text { color: var(--milestone-color); }
         .hover-info.gold-text { color: var(--birth-color); }
@@ -81,15 +82,16 @@
             <h1>LIFE WEEKS</h1>
             <div class="soul-text">
                 <span class="mobile-hidden">
-                    80 年，4,160 周。<br>
-                    <strong style="color:var(--ink-color)">黑色</strong>是已逝的记忆，
-                    <strong style="color:var(--ink-color)">白色</strong>是无限的可能。<br>
-                    那个闪烁的<strong style="color:var(--accent-color)">红色</strong>，就是现在。
-                    <br><br>Make it count.
+                    80 Years. 4,160 Weeks.<br>
+                    <strong class="black">Past</strong> is memory.<br>
+                    <strong class="black">Future</strong> is infinite possibility.<br>
+                    That flashing <strong class="red">Red</strong> is Here and Now.
+                    <br><br>
+                    Make it count.
                 </span>
                 <span class="mobile-visible">
-                    80 年，4,160 周。<br>
-                    那个闪烁的<strong style="color:var(--accent-color)">红色</strong>，就是现在。<br>
+                    80 Years. 4,160 Weeks.<br>
+                    That flashing <strong class="red">Red</strong> is Here and Now.<br>
                     Make it count.
                 </span>
             </div>
@@ -124,227 +126,194 @@
     </div>
 
 <script>
-    // ==========================================
-    // ⚠️ 配置区域：请填入你的 SUPABASE 信息
-    // ==========================================
-    const supabaseUrl = 'YOUR_SUPABASE_PROJECT_URL'; // 替换这里
-    const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';    // 替换这里
-    // ==========================================
+    const supabaseUrl = 'https://yioysnvcgedsxwkjxejx.supabase.co';
+    const supabaseKey = 'sb_publishable_oK_9EuOCFExUSGw5xLu85w_w377FCp4';
+    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-    
     const gridEl = document.getElementById('grid');
     const dateInput = document.getElementById('birthdate');
     const statsEl = document.getElementById('stats');
     const hoverInfoEl = document.getElementById('hoverInfo');
     const loginForm = document.getElementById('login-form');
     const userInfo = document.getElementById('user-info');
-    
+
     const TOTAL_YEARS = 80;
     const WEEKS_PER_YEAR = 52;
     const TOTAL_WEEKS = TOTAL_YEARS * WEEKS_PER_YEAR;
 
-    let milestones = {}; // 内存中的数据
-    let currentUser = null; // 当前用户
-    let lastClickedIndex = -1; // 手机端点击逻辑
+    let milestones = {};
+    let currentUser = null;
+    let lastClickedIndex = -1;
 
-    // --- 1. 初始化 & 监听登录状态 ---
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    // --- 核心修复 1: 定义一个不包含 hash 的干净 URL ---
+    const CLEAN_URL = window.location.origin + window.location.pathname;
+
+
+    /* --------------------- 認證狀態監聽 --------------------- */
+    supabaseClient.auth.onAuthStateChange(async (event, session) => {
+        // --- 核心修复 3: 在 SIGNED_IN 事件后再次清理 URL，确保万无一失 ---
+        if (event === 'SIGNED_IN') {
+            history.replaceState({}, document.title, CLEAN_URL);
+        }
+
         if (session) {
-            // 已登录
             currentUser = session.user;
-            loginForm.style.display = 'none';
-            userInfo.style.display = 'block';
-            console.log("User:", currentUser.id);
-            await loadCloudMilestones(); // 拉取云端数据
+            updateAuthUI(true);
+            await loadCloudMilestones();
         } else {
-            // 未登录
             currentUser = null;
-            loginForm.style.display = 'block';
-            userInfo.style.display = 'none';
-            // 降级：尝试读取本地缓存
-            milestones = JSON.parse(localStorage.getItem('lifeGridMilestones')) || {};
-            renderGrid();
+            updateAuthUI(false);
+            loadLocalMilestones();
         }
     });
 
-    // --- 2. 登录/登出逻辑 ---
-    async function handleLogin() {
-        const email = document.getElementById('email').value;
-        if (!email) return alert("Please enter your email");
-        const { error } = await supabase.auth.signInWithOtp({ email });
-        if (error) alert("Error: " + error.message);
-        else alert("✨ Magic Link sent! Check your inbox.");
-    }
-
-    async function handleLogout() {
-        await supabase.auth.signOut();
-        location.reload();
-    }
-
-    // --- 3. 核心：从云端加载数据 ---
-    async function loadCloudMilestones() {
-        // 读取 test_milestones 表
-        const { data, error } = await supabase
-            .from('test_milestones')
-            .select('week_index, content');
-            
-        if (error) {
-            console.error('Load failed:', error);
+    function updateAuthUI(isLoggedIn) {
+        if (isLoggedIn) {
+            loginForm.style.display = 'none';
+            userInfo.style.display = 'block';
         } else {
-            // 转换数据格式：数组 -> 对象
-            milestones = {};
-            data.forEach(row => {
-                milestones[row.week_index] = row.content;
-            });
-            // 同时更新本地缓存，以防断网
-            localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
-            renderGrid();
+            loginForm.style.display = 'block';
+            userInfo.style.display = 'none';
         }
     }
 
-    // --- 4. 核心：保存到云端 (Upsert) ---
+    /* --------------------- 登入 / 登出 --------------------- */
+    async function handleLogin() {
+        const email = document.getElementById('email').value.trim();
+        if (!email) return alert('Please enter your email');
+
+        const { error } = await supabaseClient.auth.signInWithOtp({
+            email,
+            options: {
+                // --- 核心修复 4: 使用干净的 URL 作为重定向目标 ---
+                emailRedirectTo: CLEAN_URL
+            }
+        });
+
+        if (error) alert('Error: ' + error.message);
+        else alert('✨ Magic Link sent! Please check your email and CLICK THE LINK to log in.');
+    }
+
+    async function handleLogout() {
+        localStorage.removeItem('lifeGridMilestones');
+        localStorage.removeItem('lifeGridBirthdate');
+        await supabaseClient.auth.signOut();
+        // --- 核心修复 5: 登出后跳转到干净的 URL，而不是简单刷新 ---
+        window.location.replace(CLEAN_URL);
+    }
+
+    /* --------------------- 雲端數據加載 / 本地加載 --------------------- */
+    async function loadCloudMilestones() {
+        const { data, error } = await supabaseClient.from('test_milestones').select('week_index, content');
+        if (error) {
+            console.error('Load failed:', error);
+            alert('⚠️ Failed to load cloud data: ' + error.message);
+            milestones = {}; // 清空内存中的里程碑，防止显示旧数据
+            loadLocalMilestones(); // 回退到（可能为空的）本地数据
+            return;
+        }
+        milestones = {};
+        data.forEach(row => (milestones[row.week_index] = row.content));
+        localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
+        renderGrid();
+    }
+
+    function loadLocalMilestones() {
+        const local = localStorage.getItem('lifeGridMilestones');
+        milestones = local ? JSON.parse(local) : {};
+        renderGrid();
+    }
+
+    /* --------------------- 保存 --------------------- */
     async function saveMilestone(index, content) {
-        // 1. 更新内存
-        if (!content) delete milestones[index];
-        else milestones[index] = content;
-        
-        // 2. 更新本地缓存 (极速响应)
+        if (!content) delete milestones[index]; else milestones[index] = content;
         localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
         renderGrid();
 
-        // 3. 异步同步到云端
         if (currentUser) {
             if (!content) {
-                // 删除
-                await supabase.from('test_milestones').delete().eq('week_index', index);
+                await supabaseClient.from('test_milestones').delete().eq('week_index', index);
             } else {
-                // 插入或更新 (需要数据库设置唯一约束)
-                const { error } = await supabase
-                    .from('test_milestones')
-                    .upsert({ 
-                        user_id: currentUser.id, 
-                        week_index: index, 
-                        content: content 
-                    }, { onConflict: 'user_id, week_index' });
-                    
-                if (error) console.error("Cloud save failed:", error);
+                const { error } = await supabaseClient.from('test_milestones').upsert({
+                    user_id: currentUser.id,
+                    week_index: index,
+                    content
+                }, { onConflict: 'user_id, week_index' });
+                if (error) alert('Cloud save failed: ' + error.message);
             }
         }
     }
 
-    // --- 5. 渲染网格逻辑 (保持不变) ---
+    /* --------------------- 渲染網格 --------------------- */
     function renderGrid() {
         gridEl.innerHTML = '';
         const birthdate = new Date(dateInput.value);
         const today = new Date();
-        
         const oneWeek = 1000 * 60 * 60 * 24 * 7;
         let diffWeeks = Math.floor((today - birthdate) / oneWeek);
-        if (diffWeeks < 0) diffWeeks = 0;
-        if (diffWeeks > TOTAL_WEEKS) diffWeeks = TOTAL_WEEKS;
+        diffWeeks = Math.max(0, Math.min(diffWeeks, TOTAL_WEEKS));
+        const left = TOTAL_WEEKS - diffWeeks;
+        const pct = ((diffWeeks / TOTAL_WEEKS) * 100).toFixed(1);
+        statsEl.innerHTML = `Used: <strong>${diffWeeks}</strong> weeks (${pct}%)<br>Remaining: <strong>${left}</strong> weeks`;
 
-        const leftWeeks = TOTAL_WEEKS - diffWeeks;
-        const percentage = ((diffWeeks / TOTAL_WEEKS) * 100).toFixed(1);
-        
-        statsEl.innerHTML = `Used: <strong>${diffWeeks}</strong> weeks (${percentage}%)<br>Remaining: <strong>${leftWeeks}</strong> weeks`;
-
-        const fragment = document.createDocumentFragment();
-
+        const frag = document.createDocumentFragment();
         for (let i = 0; i < TOTAL_WEEKS; i++) {
             const div = document.createElement('div');
             div.className = 'cell';
             const age = Math.floor(i / WEEKS_PER_YEAR);
             const year = birthdate.getFullYear() + age;
-            const note = milestones[i]; // 获取笔记
-            
-            // 状态判断
-            const isPast = i < diffWeeks;
-            const isCurrent = i === diffWeeks;
-            const isBirth = (i === 0);
+            const note = milestones[i];
+            const past = i < diffWeeks;
+            const current = i === diffWeeks;
+            const birth = i === 0;
+            if (past) div.classList.add('past'); else if (current) div.classList.add('current');
+            if (birth) div.classList.add('birth'); else if (note) div.classList.add('milestone');
 
-            if (isPast) div.classList.add('past');
-            else if (isCurrent) div.classList.add('current');
-            
-            if (isBirth) div.classList.add('birth');
-            else if (note) div.classList.add('milestone'); // 如果有笔记，标蓝
-
-            // 交互事件
-            const updateInfo = () => {
-                hoverInfoEl.className = 'hover-info'; // 重置类
-                if (isBirth) {
-                   hoverInfoEl.textContent = `👶 Born in ${year}`;
-                   hoverInfoEl.classList.add('gold-text');
-                } else if (note) {
-                    hoverInfoEl.textContent = `📌 ${note} (Age ${age})`;
-                    hoverInfoEl.classList.add('blue-text'); 
-                } else if (isCurrent) {
-                    hoverInfoEl.textContent = `NOW · 此刻`;
-                } else {
-                    hoverInfoEl.textContent = `${year} (Age ${age})`;
-                }
+            const showInfo = () => {
+                hoverInfoEl.className = 'hover-info';
+                if (birth) { hoverInfoEl.textContent = `👶 Born in ${year}`; hoverInfoEl.classList.add('gold-text'); }
+                else if (note) { hoverInfoEl.textContent = `📌 ${note} (Age ${age})`; hoverInfoEl.classList.add('blue-text'); }
+                else if (current) hoverInfoEl.textContent = 'NOW · 此刻';
+                else hoverInfoEl.textContent = `${year} (Age ${age})`;
             };
 
-            const triggerEdit = () => {
+            const edit = () => {
                 setTimeout(() => {
-                    const currentVal = milestones[i] || '';
-                    let promptText = isBirth ? `Edit birth note:` : (currentVal ? `Edit note:` : `Set a goal/memory for Age ${age}:`);
-                    
-                    const input = prompt(promptText, currentVal);
-                    if (input !== null) {
-                        saveMilestone(i, input.trim()); // 调用新的保存函数
-                    }
+                    const val = milestones[i] || '';
+                    const input = prompt(val ? 'Edit note:' : `Set note for Age ${age}:`, val);
+                    if (input !== null) saveMilestone(i, input.trim());
                 }, 50);
             };
 
-            div.addEventListener('mouseenter', updateInfo);
-            div.addEventListener('click', (e) => {
+            div.addEventListener('mouseenter', showInfo);
+            div.addEventListener('click', e => {
                 e.stopPropagation();
                 if (window.innerWidth <= 768) {
                     if (lastClickedIndex !== i) {
-                        updateInfo();
-                        const prev = document.querySelector('.cell.selected');
-                        if (prev) prev.classList.remove('selected');
+                        showInfo();
+                        document.querySelector('.cell.selected')?.classList.remove('selected');
                         div.classList.add('selected');
                         lastClickedIndex = i;
-                    } else {
-                        triggerEdit();
-                        div.classList.remove('selected');
-                        lastClickedIndex = -1;
-                    }
-                } else {
-                    updateInfo();
-                    triggerEdit();
-                }
+                    } else { edit(); div.classList.remove('selected'); lastClickedIndex = -1; }
+                } else { showInfo(); edit(); }
             });
-
-            fragment.appendChild(div);
+            frag.appendChild(div);
         }
-        gridEl.appendChild(fragment);
-
-        gridEl.addEventListener('mouseleave', () => {
-            if (window.innerWidth > 768) hoverInfoEl.textContent = ''; 
-        });
+        gridEl.appendChild(frag);
+        gridEl.addEventListener('mouseleave', () => { if (window.innerWidth > 768) hoverInfoEl.textContent = ''; });
     }
 
-    // 初始化渲染
-    const savedBirthdate = localStorage.getItem('lifeGridBirthdate');
-    if (savedBirthdate) dateInput.value = savedBirthdate;
-    
-    renderGrid();
-    
-    dateInput.addEventListener('change', () => {
-        localStorage.setItem('lifeGridBirthdate', dateInput.value);
-        renderGrid();
-    });
+    /* --------------------- 初始化 --------------------- */
+    const savedBirth = localStorage.getItem('lifeGridBirthdate');
+    if (savedBirth) dateInput.value = savedBirth;
+    dateInput.addEventListener('change', () => { localStorage.setItem('lifeGridBirthdate', dateInput.value); renderGrid(); });
 
-    document.body.addEventListener('click', (e) => {
+    supabaseClient.auth.getSession().then(({ data }) => { if (data.session) { currentUser = data.session.user; updateAuthUI(true); loadCloudMilestones(); } else renderGrid(); });
+
+    document.body.addEventListener('click', e => {
         if (window.innerWidth <= 768 && !e.target.classList.contains('cell')) {
-            const prev = document.querySelector('.cell.selected');
-            if (prev) prev.classList.remove('selected');
-            lastClickedIndex = -1;
-            hoverInfoEl.textContent = '';
-        }
+            document.querySelector('.cell.selected')?.classList.remove('selected');
+            lastClickedIndex = -1; hoverInfoEl.textContent = ''; }
     });
 </script>
 </body>
