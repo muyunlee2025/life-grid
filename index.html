@@ -82,7 +82,7 @@
             <h1>LIFE WEEKS</h1>
             <div class="soul-text">
                 <span class="mobile-hidden">
-                    80 Years. 4,160 Weeks.<br>
+                    80 Years. 4,160 Weeks.（部署测试1）<br>
                     <strong class="black">Past</strong> is memory.<br>
                     <strong class="black">Future</strong> is infinite possibility.<br>
                     That flashing <strong class="red">Red</strong> is Here and Now.
@@ -145,14 +145,14 @@
     let currentUser = null;
     let lastClickedIndex = -1;
 
-    // --- 核心修复 1: 定义一个不包含 hash 的干净 URL ---
-    const CLEAN_URL = window.location.origin + window.location.pathname;
-
+    // --- 修复：使用更稳健的方式获取当前无 Hash 的 URL ---
+    // 之前使用 origin + pathname，现在改用 split('#') 确保兼容带参数的 URL
+    const CLEAN_URL = window.location.href.split('#')[0];
 
     /* --------------------- 認證狀態監聽 --------------------- */
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        // --- 核心修复 3: 在 SIGNED_IN 事件后再次清理 URL，确保万无一失 ---
         if (event === 'SIGNED_IN') {
+            // 登录成功后清理 URL 中的 Hash，让页面看起来干净
             history.replaceState({}, document.title, CLEAN_URL);
         }
 
@@ -182,23 +182,24 @@
         const email = document.getElementById('email').value.trim();
         if (!email) return alert('Please enter your email');
 
+        // 发送登录邮件
         const { error } = await supabaseClient.auth.signInWithOtp({
             email,
             options: {
-                // --- 核心修复 4: 使用干净的 URL 作为重定向目标 ---
+                // 强制指定跳转回当前页面
                 emailRedirectTo: CLEAN_URL
             }
         });
 
         if (error) alert('Error: ' + error.message);
-        else alert('✨ Magic Link sent! Please check your email and CLICK THE LINK to log in.');
+        else alert('✨ Magic Link sent! Please check your email (including Spam folder) and CLICK THE LINK to log in.');
     }
 
     async function handleLogout() {
         localStorage.removeItem('lifeGridMilestones');
         localStorage.removeItem('lifeGridBirthdate');
         await supabaseClient.auth.signOut();
-        // --- 核心修复 5: 登出后跳转到干净的 URL，而不是简单刷新 ---
+        // 登出后重置到干净的 URL
         window.location.replace(CLEAN_URL);
     }
 
@@ -207,9 +208,8 @@
         const { data, error } = await supabaseClient.from('test_milestones').select('week_index, content');
         if (error) {
             console.error('Load failed:', error);
-            alert('⚠️ Failed to load cloud data: ' + error.message);
-            milestones = {}; // 清空内存中的里程碑，防止显示旧数据
-            loadLocalMilestones(); // 回退到（可能为空的）本地数据
+            // 仅在控制台报错，不弹窗打扰用户，自动降级到本地
+            loadLocalMilestones(); 
             return;
         }
         milestones = {};
@@ -239,7 +239,7 @@
                     week_index: index,
                     content
                 }, { onConflict: 'user_id, week_index' });
-                if (error) alert('Cloud save failed: ' + error.message);
+                if (error) console.error('Cloud save failed: ' + error.message);
             }
         }
     }
