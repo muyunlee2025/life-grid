@@ -55,9 +55,11 @@
         /* 登录框样式 */
         .auth-section { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; opacity: 0.8; transition: opacity 0.3s; }
         .auth-section:hover { opacity: 1; }
-        .auth-input { padding: 8px; background: transparent; border: 1px solid #999; color: var(--ink-color); width: 60%; font-size: 0.85rem; border-radius: 2px; }
-        .auth-btn { background: var(--ink-color); color: #fff; border: none; padding: 8px 12px; cursor: pointer; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; border-radius: 2px; }
-        .logout-btn { background: transparent; border: 1px solid #999; color: #666; padding: 4px 10px; cursor: pointer; font-size: 0.7rem; margin-top: 5px; }
+        .auth-section label { color: #bbb !important; font-weight: 400 !important; }
+        .auth-input { padding: 8px; background: transparent; border: 1px solid #ccc; color: var(--ink-color); width: 60%; font-size: 0.85rem; border-radius: 2px; }
+        .auth-input::placeholder { color: #999; opacity: 1; }
+        .auth-btn { background: transparent; color: #999; border: 1px solid #ccc; padding: 8px 12px; cursor: pointer; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; border-radius: 2px; }
+        .logout-btn { background: transparent; border: 1px solid #ccc; color: #999; padding: 4px 10px; cursor: pointer; font-size: 0.7rem; margin-top: 5px; }
         
         .mobile-visible { display: none; }
         .mobile-hidden { display: inline; }
@@ -112,6 +114,34 @@
 .btn-cancel { background: transparent; color: #999; }
 .btn-save { background: var(--ink-color); color: #fff; }
 .btn-delete { color: var(--accent-color); background: transparent; margin-right: auto; } /* 删除按钮在左边 */
+
+        .mobile-only-auth {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .desktop-only-auth {
+                display: none;
+            }
+            .mobile-only-auth {
+                display: block;
+                margin-top: 40px; /* Add some space above the mobile auth section */
+                text-align: center; /* Center align the content */
+            }
+            .mobile-only-auth .auth-input {
+                width: auto; /* Override the fixed width */
+                flex: 1; /* Allow the input to grow */
+            }
+            .mobile-only-auth label {
+                display: inline-block;
+                margin-bottom: 10px;
+            }
+            .mobile-only-auth > div > div {
+                max-width: 400px; /* Limit the max width */
+                margin-left: auto;
+                margin-right: auto;
+            }
+        }
     </style>
 </head>
 <body>
@@ -140,12 +170,12 @@
             </div>
             <div class="stats" id="stats"></div>
 
-            <div class="auth-section">
+            <div class="auth-section desktop-only-auth">
                 <div id="login-form">
                     <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #999; font-weight: 600;">Cloud Sync</label>
                     <div style="display: flex; gap: 5px; margin-top: 10px;">
                         <input type="email" id="email" class="auth-input" placeholder="Enter Email to Sync">
-                        <button onclick="handleLogin()" class="auth-btn">LOGIN</button>
+                        <button onclick="handleLogin()" id="login-btn-desktop" class="auth-btn">永久备份</button>
                     </div>
                 </div>
                 <div id="user-info" style="display: none;">
@@ -161,6 +191,20 @@
         <main class="grid-container">
             <div id="grid" class="grid"></div>
         </main>
+        <div class="auth-section mobile-only-auth">
+            <div id="login-form-mobile">
+                <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #999; font-weight: 600;">Cloud Sync</label>
+                <div style="display: flex; gap: 5px; margin-top: 10px;">
+                    <input type="email" id="email-mobile" class="auth-input" placeholder="Enter Email to Sync">
+                    <button onclick="handleLogin(true)" id="login-btn-mobile" class="auth-btn">LOGIN</button>
+                </div>
+            </div>
+            <div id="user-info-mobile" style="display: none;">
+                <span style="color: #666; font-weight: 500; font-size: 0.85rem;"><span style="font-size: 0.5rem; vertical-align: middle; margin-right: 4px;">🟢</span>Cloud Connected</span><br>
+                <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">Data is safe in Supabase</div>
+                <button onclick="handleLogout()" class="logout-btn">LOGOUT</button>
+            </div>
+        </div>
     </div>
 
     <div class="modal-overlay" id="noteModal">
@@ -176,264 +220,403 @@
     </div>
 
 <script>
+    // ================= 配置区 =================
     const supabaseUrl = 'https://yioysnvcgedsxwkjxejx.supabase.co';
     const supabaseKey = 'sb_publishable_oK_9EuOCFExUSGw5xLu85w_w377FCp4';
     const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
+    // ================= DOM 元素 =================
     const gridEl = document.getElementById('grid');
     const dateInput = document.getElementById('birthdate');
     const statsEl = document.getElementById('stats');
     const hoverInfoEl = document.getElementById('hoverInfo');
     const loginForm = document.getElementById('login-form');
     const userInfo = document.getElementById('user-info');
+    const loginFormMobile = document.getElementById('login-form-mobile');
+    const userInfoMobile = document.getElementById('user-info-mobile');
+    
+    // 模态框元素
+    const modal = document.getElementById('noteModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalInput = document.getElementById('modalInput');
 
+    // ================= 全局变量 =================
     const TOTAL_YEARS = 80;
     const WEEKS_PER_YEAR = 52;
     const TOTAL_WEEKS = TOTAL_YEARS * WEEKS_PER_YEAR;
 
-    let milestones = {};
-    let currentUser = null;
-    let lastClickedIndex = -1;
+    let milestones = {};       // 内存中的数据源 (Single Source of Truth)
+    let currentUser = null;    // 当前用户状态
+    let lastClickedIndex = -1; // 手机端点击防抖
 
-    // --- 核心修复 1: 定义一个不包含 hash 的干净 URL ---
+    // URL 清理工具 (防止 URL 里一直带着 token)
     const CLEAN_URL = window.location.origin + window.location.pathname;
 
-
-    /* --------------------- 認證狀態監聽 --------------------- */
+    // ==========================================
+    // 核心逻辑 1: 状态机控制器 (Central Controller)
+    // ==========================================
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN') {
-            history.replaceState({}, document.title, CLEAN_URL);
+        console.log("🔒 Auth State Changed:", event);
+
+        // 1. 如果是从邮件链接跳回来的，清理 URL
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            window.history.replaceState({}, document.title, CLEAN_URL);
         }
 
         if (session) {
+            // === 状态：已登录 ===
+            console.log("✅ User detected:", session.user.id);
             currentUser = session.user;
+            
+            // 更新 UI 为“已登录”
             updateAuthUI(true);
-            await loadCloudMilestones();
+            
+            // 执行核心同步逻辑 (合并本地和云端)
+            await syncAndLoadData();
         } else {
+            // === 状态：未登录 / 登出 ===
+            console.log("👋 Guest mode");
             currentUser = null;
+            
+            // 更新 UI 为“未登录”
             updateAuthUI(false);
-            loadLocalMilestones();
+            
+            // 加载纯本地数据
+            loadLocalOnly();
         }
     });
 
-    function updateAuthUI(isLoggedIn) {
-        if (isLoggedIn) {
-            loginForm.style.display = 'none';
-            userInfo.style.display = 'block';
-        } else {
-            loginForm.style.display = 'block';
-            userInfo.style.display = 'none';
-        }
-    }
+    // ==========================================
+    // 核心逻辑 2: 数据加载与同步 (The Brain)
+    // ==========================================
+    
+    // 场景 A: 登录后的同步 (Merge Logic)
+    async function syncAndLoadData() {
+        try {
+            // 1. 先把手里现有的本地数据攥紧，别丢了
+            const localRaw = localStorage.getItem('lifeGridMilestones');
+            const localData = localRaw ? JSON.parse(localRaw) : {};
+            
+            // 2. 去云端把数据拉下来
+            const { data: cloudData, error } = await supabaseClient
+                .from('test_milestones')
+                .select('week_index, content');
 
-    /* --------------------- 登入 / 登出 --------------------- */
-    async function handleLogin() {
-        const email = document.getElementById('email').value.trim();
-        if (!email) return alert('Please enter your email');
+            if (error) throw error;
 
-        const { error } = await supabaseClient.auth.signInWithOtp({
-            email,
-            options: {
-                // --- 核心修复 4: 使用干净的 URL 作为重定向目标 ---
-                emailRedirectTo: CLEAN_URL
+            // 3. 建立云端数据索引 (Map结构方便查找)
+            const cloudMap = new Map();
+            cloudData.forEach(row => cloudMap.set(row.week_index, row.content));
+
+            // 4. 【关键】差异比对：找出“本地有，但云端没有”的数据
+            const updatesToUpload = [];
+            for (const [key, content] of Object.entries(localData)) {
+                const weekIdx = parseInt(key);
+                // 只有当云端这个格子是空的，且本地有内容时，才视为“新笔记”上传
+                // (防止覆盖云端已有的旧数据，云端权重 > 本地权重)
+                if (!cloudMap.has(weekIdx) && content) {
+                    updatesToUpload.push({
+                        user_id: currentUser.id,
+                        week_index: weekIdx,
+                        content: content
+                    });
+                }
             }
-        });
 
-        if (error) alert('Error: ' + error.message);
-        else alert('✨ Magic Link sent! Please check your email and CLICK THE LINK to log in.');
-    }
+            // 5. 如果有需要上传的，执行批量上传 (Upsert)
+            if (updatesToUpload.length > 0) {
+                console.log("🚀 Uploading local notes to cloud...", updatesToUpload);
+                const { error: uploadError } = await supabaseClient
+                    .from('test_milestones')
+                    .upsert(updatesToUpload, { onConflict: 'user_id, week_index' });
+                
+                if (uploadError) console.error("Sync upload failed:", uploadError);
+                else {
+                    // 上传成功后，把这些数据也加到 cloudMap 里，准备渲染
+                    updatesToUpload.forEach(item => cloudMap.set(item.week_index, item.content));
+                }
+            }
 
-    async function handleLogout() {
-        // 1. 先调用 Supabase 的 signOut
-        const { error } = await supabaseClient.auth.signOut();
-        if (error) {
-            return alert('Logout failed: ' + error.message);
+            // 6. 最终合并：将 cloudMap 转回 milestones 对象
+            milestones = {};
+            for (const [weekIdx, content] of cloudMap.entries()) {
+                milestones[weekIdx] = content;
+            }
+
+            // 7. 【双写】更新本地缓存，确保离线也能看
+            localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
+            
+            // 8. 渲染
+            renderGrid();
+            console.log("✨ Sync Complete. Data merged.");
+
+        } catch (err) {
+            console.error("Sync Critical Error:", err);
+            alert("Sync failed. Check console. Using local data for now.");
+            loadLocalOnly(); // 降级处理
         }
-
-        // 2. 清理所有本地状态（内存和 localStorage）
-        currentUser = null;
-        milestones = {};
-        // 使用 localStorage.clear() 彻底清除所有本地存储，
-        // 包括可能损坏的 Supabase 会话令牌，这是解决“幽灵会话”问题的关键。
-        localStorage.clear();
-
-        // 3. 立即、手动更新 UI 到登出状态
-        updateAuthUI(false); // 显示登录框
-        
-        renderGrid(); // 用空的 milestones 重新渲染格子
-
-        // 4. 清理 URL，移除不再需要的页面重载
-        history.replaceState({}, document.title, CLEAN_URL);
-        alert('You have been logged out.');
     }
 
-    /* --------------------- 雲端數據加載 / 本地加載 --------------------- */
-    async function loadCloudMilestones() {
-        const { data, error } = await supabaseClient.from('test_milestones').select('week_index, content');
-        if (error) {
-            console.error('Load failed:', error);
-            alert('⚠️ Failed to load cloud data: ' + error.message);
-            milestones = {}; // 清空内存中的里程碑，防止显示旧数据
-            loadLocalMilestones(); // 回退到（可能为空的）本地数据
-            return;
-        }
-        milestones = {};
-        data.forEach(row => (milestones[row.week_index] = row.content));
-        localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
-        renderGrid();
-    }
-
-    function loadLocalMilestones() {
+    // 场景 B: 纯本地加载 (Guest Logic)
+    function loadLocalOnly() {
         const local = localStorage.getItem('lifeGridMilestones');
         milestones = local ? JSON.parse(local) : {};
         renderGrid();
     }
 
-    /* --------------------- 保存 --------------------- */
+    // ==========================================
+    // 核心逻辑 3: 动作 (Login/Logout/Save)
+    // ==========================================
+
+        async function handleLogin(isMobile = false) {
+        const emailId = isMobile ? 'email-mobile' : 'email';
+        const btnId = isMobile ? 'login-btn-mobile' : 'login-btn-desktop';
+        
+        const email = document.getElementById(emailId).value.trim();
+        const loginBtn = document.getElementById(btnId);
+        const originalText = loginBtn.textContent;
+
+        if (!email) {
+            loginBtn.textContent = '请输入邮箱';
+            setTimeout(() => { loginBtn.textContent = originalText; }, 2000);
+            return;
+        }
+
+        // 1. 立即提供视觉反馈
+        loginBtn.disabled = true;
+        loginBtn.textContent = '正在发送...';
+
+        try {
+            // 2. 发送 Magic Link
+            const { error } = await supabaseClient.auth.signInWithOtp({
+                email,
+                options: { emailRedirectTo: CLEAN_URL }
+            });
+
+            if (error) throw error;
+
+            // 3. 成功反馈
+            alert('✨ Magic Link sent! Check your inbox.');
+            loginBtn.textContent = '✅ 邮件已发送';
+
+        } catch (error) {
+            // 4. 失败反馈
+            console.error('Login error:', error.message);
+            loginBtn.textContent = '❌ 发送失败';
+        } finally {
+            // 5. 无论成功失败，2.5秒后恢复按钮
+            setTimeout(() => {
+                loginBtn.disabled = false;
+                loginBtn.textContent = originalText;
+            }, 2500);
+        }
+    }
+
+    async function handleLogout() {
+        if (!confirm("Confirm Logout? This will clear local data.")) return;
+
+        // 1. Supabase 登出
+        await supabaseClient.auth.signOut();
+
+        // 2. 【核弹级清理】用户要求：登出即重置
+        localStorage.removeItem('lifeGridMilestones'); // 只清空数据，保留生日配置
+        milestones = {};
+        
+        // 3. UI 状态会在 onAuthStateChange 里自动更新，这里不需要手动调 updateAuthUI
+        // 但为了视觉反馈快，可以强制刷新一下
+        window.location.reload(); 
+    }
+
     async function saveMilestone(index, content) {
-        if (!content) delete milestones[index]; else milestones[index] = content;
+        // 1. 内存更新
+        if (!content) delete milestones[index]; 
+        else milestones[index] = content;
+        
+        // 2. 本地持久化 (无论是否登录，先存本地)
         localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
         renderGrid();
 
+        // 3. 如果已登录，异步同步到云端
         if (currentUser) {
-            if (!content) {
-                await supabaseClient.from('test_milestones').delete().eq('week_index', index);
-            } else {
-                const { error } = await supabaseClient.from('test_milestones').upsert({
-                    user_id: currentUser.id,
-                    week_index: index,
-                    content
-                }, { onConflict: 'user_id, week_index' });
-                if (error) alert('Cloud save failed: ' + error.message);
+            try {
+                if (!content) {
+                    await supabaseClient.from('test_milestones').delete().eq('week_index', index);
+                } else {
+                    await supabaseClient.from('test_milestones').upsert({
+                        user_id: currentUser.id,
+                        week_index: index,
+                        content
+                    }, { onConflict: 'user_id, week_index' });
+                }
+            } catch (e) {
+                console.error("Cloud save failed:", e);
+                // 这里可以加一个 UI 提示“保存云端失败”，但为了极简先不加
             }
         }
     }
-    // --- 新增：模态框控制逻辑 ---
-const modal = document.getElementById('noteModal');
-const modalTitle = document.getElementById('modalTitle');
-const modalInput = document.getElementById('modalInput');
-let currentEditingIndex = -1; // 记录当前正在编辑哪一周
 
-function openModal(index, content, age) {
-    currentEditingIndex = index;
-    modalInput.value = content || '';
-    
-    // 动态设置标题
-    if (index === 0) modalTitle.textContent = "👶 The Beginning";
-    else if (content) modalTitle.textContent = `📝 Edit Note (Age ${age})`;
-    else modalTitle.textContent = `✨ New Memory (Age ${age})`;
+    // ==========================================
+    // UI 辅助函数
+    // ==========================================
+    function updateAuthUI(isLoggedIn) {
+        // 同时控制 PC 端和 Mobile 端的 UI
+        const displays = isLoggedIn ? ['none', 'block'] : ['block', 'none'];
+        
+        [loginForm, loginFormMobile].forEach(el => { if(el) el.style.display = displays[0]; });
+        [userInfo, userInfoMobile].forEach(el => { if(el) el.style.display = displays[1]; });
+    }
 
-    modal.classList.add('active');
-    setTimeout(() => modalInput.focus(), 100); // 自动聚焦
-}
+    // ==========================================
+    // 模态框逻辑 (Modal)
+    // ==========================================
+    let currentEditingIndex = -1; 
 
-function closeModal() {
-    modal.classList.remove('active');
-    modalInput.blur();
-}
+    function openModal(index, content, age) {
+        currentEditingIndex = index;
+        modalInput.value = content || '';
+        
+        if (index === 0) modalTitle.textContent = "👶 The Beginning";
+        else if (content) modalTitle.textContent = `📝 Edit Note (Age ${age})`;
+        else modalTitle.textContent = `✨ New Memory (Age ${age})`;
 
-// 保存按钮点击
-function saveFromModal() {
-    if (currentEditingIndex === -1) return;
-    const content = modalInput.value.trim();
-    saveMilestone(currentEditingIndex, content); // 调用之前的保存逻辑
-    closeModal();
-}
+        modal.classList.add('active');
+        // 延时聚焦，防止移动端键盘弹出太快
+        setTimeout(() => modalInput.focus(), 100); 
+    }
 
-// 删除按钮点击
-function deleteNote() {
-    if (currentEditingIndex === -1) return;
-    if (confirm("Clear this memory?")) {
-        saveMilestone(currentEditingIndex, null); // 传 null 就是删除
+    function closeModal() {
+        modal.classList.remove('active');
+        modalInput.blur();
+    }
+
+    function saveFromModal() {
+        if (currentEditingIndex === -1) return;
+        const content = modalInput.value.trim();
+        saveMilestone(currentEditingIndex, content);
         closeModal();
     }
-}
 
-// 点击遮罩层关闭
-modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
-});
+    function deleteNote() {
+        if (currentEditingIndex === -1) return;
+        if (confirm("Clear this memory?")) {
+            saveMilestone(currentEditingIndex, null);
+            closeModal();
+        }
+    }
+    
+    // 点击遮罩关闭
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
 
-    /* --------------------- 渲染網格 --------------------- */
+    // ==========================================
+    // 网格渲染 (Renderer)
+    // ==========================================
     function renderGrid() {
         gridEl.innerHTML = '';
         const birthdate = new Date(dateInput.value);
         const today = new Date();
         const oneWeek = 1000 * 60 * 60 * 24 * 7;
+        
+        // 计算周数
         let diffWeeks = Math.floor((today - birthdate) / oneWeek);
         diffWeeks = Math.max(0, Math.min(diffWeeks, TOTAL_WEEKS));
+        
         const left = TOTAL_WEEKS - diffWeeks;
         const pct = ((diffWeeks / TOTAL_WEEKS) * 100).toFixed(1);
+        
         statsEl.innerHTML = `Used: <strong>${diffWeeks}</strong> weeks (${pct}%)<br>Remaining: <strong>${left}</strong> weeks`;
 
         const frag = document.createDocumentFragment();
+
         for (let i = 0; i < TOTAL_WEEKS; i++) {
             const div = document.createElement('div');
             div.className = 'cell';
             const age = Math.floor(i / WEEKS_PER_YEAR);
             const year = birthdate.getFullYear() + age;
             const note = milestones[i];
-            const past = i < diffWeeks;
-            const current = i === diffWeeks;
-            const birth = i === 0;
-            if (past) div.classList.add('past'); else if (current) div.classList.add('current');
-            if (birth) div.classList.add('birth'); else if (note) div.classList.add('milestone');
+            
+            // 状态计算
+            const isPast = i < diffWeeks;
+            const isCurrent = i === diffWeeks;
+            const isBirth = i === 0;
 
+            if (isPast) div.classList.add('past');
+            else if (isCurrent) div.classList.add('current');
+            
+            if (isBirth) div.classList.add('birth');
+            else if (note) div.classList.add('milestone');
+
+            // 交互事件
             const showInfo = () => {
                 hoverInfoEl.className = 'hover-info';
-                if (birth) { hoverInfoEl.textContent = `👶 Born in ${year}`; hoverInfoEl.classList.add('gold-text'); }
+                if (isBirth) { hoverInfoEl.textContent = `👶 Born in ${year}`; hoverInfoEl.classList.add('gold-text'); }
                 else if (note) { hoverInfoEl.textContent = `📌 ${note} (Age ${age})`; hoverInfoEl.classList.add('blue-text'); }
-                else if (current) hoverInfoEl.textContent = 'NOW · 此刻';
+                else if (isCurrent) hoverInfoEl.textContent = 'NOW · 此刻';
                 else hoverInfoEl.textContent = `${year} (Age ${age})`;
             };
 
-            // const edit = () => {
-            //     setTimeout(() => {
-            //         const val = milestones[i] || '';
-            //         const input = prompt(val ? 'Edit note:' : `Set note for Age ${age}:`, val);
-            //         if (input !== null) saveMilestone(i, input.trim());
-            //     }, 50);
-            // };
-
-            // 替换后的 edit 函数，直接调用我们在外面写好的漂亮弹窗
             const edit = () => {
                 const currentVal = milestones[i];
-                // 调用 openModal，传入：索引(i), 内容(currentVal), 年龄(age)
                 openModal(i, currentVal, age);
             };
 
             div.addEventListener('mouseenter', showInfo);
+            
+            // 统一的点击处理 (兼容手机/PC)
             div.addEventListener('click', e => {
                 e.stopPropagation();
+                // 手机端逻辑：第一次点击选定，第二次点击编辑
                 if (window.innerWidth <= 768) {
                     if (lastClickedIndex !== i) {
                         showInfo();
                         document.querySelector('.cell.selected')?.classList.remove('selected');
                         div.classList.add('selected');
                         lastClickedIndex = i;
-                    } else { edit(); div.classList.remove('selected'); lastClickedIndex = -1; }
-                } else { showInfo(); edit(); }
+                    } else { 
+                        edit(); 
+                        div.classList.remove('selected'); 
+                        lastClickedIndex = -1; 
+                    }
+                } else { 
+                    // PC端直接编辑
+                    showInfo(); 
+                    edit(); 
+                }
             });
+            
             frag.appendChild(div);
         }
         gridEl.appendChild(frag);
-        gridEl.addEventListener('mouseleave', () => { if (window.innerWidth > 768) hoverInfoEl.textContent = ''; });
+        
+        // 鼠标移出网格清空信息
+        gridEl.addEventListener('mouseleave', () => { 
+            if (window.innerWidth > 768) hoverInfoEl.textContent = ''; 
+        });
     }
 
-    /* --------------------- 初始化 --------------------- */
+    // ==========================================
+    // 初始化 (Init)
+    // ==========================================
     const savedBirth = localStorage.getItem('lifeGridBirthdate');
     if (savedBirth) dateInput.value = savedBirth;
-    dateInput.addEventListener('change', () => { localStorage.setItem('lifeGridBirthdate', dateInput.value); renderGrid(); });
+    
+    dateInput.addEventListener('change', () => { 
+        localStorage.setItem('lifeGridBirthdate', dateInput.value); 
+        renderGrid(); 
+    });
 
-    loadLocalMilestones();
-
+    // 点击空白处取消手机端选中状态
     document.body.addEventListener('click', e => {
         if (window.innerWidth <= 768 && !e.target.classList.contains('cell')) {
             document.querySelector('.cell.selected')?.classList.remove('selected');
-            lastClickedIndex = -1; hoverInfoEl.textContent = ''; }
+            lastClickedIndex = -1; 
+            hoverInfoEl.textContent = ''; 
+        }
     });
 
-    // 增加 .catch 错误处理，防止断网时页面卡死
+    // 先渲染一次空的，等待 Auth 状态回调自动填充数据
+    renderGrid();
 
 </script>
 </body>
