@@ -98,7 +98,7 @@
             
             <div class="input-group">
                 <label>DATE OF BIRTH</label>
-                <input type="date" id="birthdate" value="1995-01-01">
+                <input type="date" id="birthdate" value="2026-01-01">
             </div>
             <div class="stats" id="stats"></div>
 
@@ -151,7 +151,6 @@
 
     /* --------------------- 認證狀態監聽 --------------------- */
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        // --- 核心修复 3: 在 SIGNED_IN 事件后再次清理 URL，确保万无一失 ---
         if (event === 'SIGNED_IN') {
             history.replaceState({}, document.title, CLEAN_URL);
         }
@@ -195,11 +194,26 @@
     }
 
     async function handleLogout() {
-        localStorage.removeItem('lifeGridMilestones');
-        localStorage.removeItem('lifeGridBirthdate');
-        await supabaseClient.auth.signOut();
-        // --- 核心修复 5: 登出后跳转到干净的 URL，而不是简单刷新 ---
-        window.location.replace(CLEAN_URL);
+        // 1. 先调用 Supabase 的 signOut
+        const { error } = await supabaseClient.auth.signOut();
+        if (error) {
+            return alert('Logout failed: ' + error.message);
+        }
+
+        // 2. 清理所有本地状态（内存和 localStorage）
+        currentUser = null;
+        milestones = {};
+        // 使用 localStorage.clear() 彻底清除所有本地存储，
+        // 包括可能损坏的 Supabase 会话令牌，这是解决“幽灵会话”问题的关键。
+        localStorage.clear();
+
+        // 3. 立即、手动更新 UI 到登出状态
+        updateAuthUI(false); // 显示登录框
+        renderGrid(); // 用空的 milestones 重新渲染格子
+
+        // 4. 清理 URL，移除不再需要的页面重载
+        history.replaceState({}, document.title, CLEAN_URL);
+        alert('You have been logged out.');
     }
 
     /* --------------------- 雲端數據加載 / 本地加載 --------------------- */
@@ -308,13 +322,16 @@
     if (savedBirth) dateInput.value = savedBirth;
     dateInput.addEventListener('change', () => { localStorage.setItem('lifeGridBirthdate', dateInput.value); renderGrid(); });
 
-    supabaseClient.auth.getSession().then(({ data }) => { if (data.session) { currentUser = data.session.user; updateAuthUI(true); loadCloudMilestones(); } else renderGrid(); });
+    loadLocalMilestones();
 
     document.body.addEventListener('click', e => {
         if (window.innerWidth <= 768 && !e.target.classList.contains('cell')) {
             document.querySelector('.cell.selected')?.classList.remove('selected');
             lastClickedIndex = -1; hoverInfoEl.textContent = ''; }
     });
+
+    // 增加 .catch 错误处理，防止断网时页面卡死
+
 </script>
 </body>
 </html>
