@@ -42,7 +42,7 @@ create table test_milestones (
 ```
 
 
-4. 启动本地服务器 (Live Server) 即可。
+4. 启动本地服务器 (Live Server) 即可
 
 ## 👨‍💻 作者 (Author)
 
