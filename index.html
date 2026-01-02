@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Life Grid (Cloud Sync)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
             --bg-color: #f2f2f0;
@@ -16,7 +17,9 @@
             --text-muted: #7f8c8d;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
+        input, textarea { user-select: auto; } /* 输入框允许选择 */
+        
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         body {
@@ -29,7 +32,7 @@
 
         .layout { display: flex; width: 90vw; height: 90vh; max-width: 1400px; gap: 60px; align-items: center; }
         .sidebar { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 300px; position: relative; }
-        .grid-container { flex: 1.5; height: 100%; display: flex; justify-content: center; align-items: center; }
+        .grid-container { flex: 1.5; height: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
         
         .grid { display: grid; grid-template-columns: repeat(52, 1fr); height: 100%; aspect-ratio: 52 / 80; gap: 2px; width: 100%; }
         .cell { background-color: var(--empty-color); border-radius: 0.5px; width: 100%; height: 100%; cursor: pointer; transition: transform 0.1s; }
@@ -38,35 +41,101 @@
         .cell.current { background-color: var(--accent-color); box-shadow: 0 0 8px var(--accent-color); z-index: 2; }
         .cell.milestone { background-color: var(--milestone-color) !important; z-index: 1; }
         .cell.birth { background-color: var(--birth-color) !important; z-index: 3; }
+        .cell.selected { transform: scale(1.5); z-index: 10; border: 1px solid #fff; } /* 手机端选中态 */
 
         .cell:hover { transform: scale(1.8); z-index: 10; background-color: #dcdcdc; border-radius: 2px; }
         
         h1 { font-size: 2rem; font-weight: 400; letter-spacing: 1px; margin-bottom: 30px; text-transform: uppercase; }
         .soul-text { font-size: 1rem; line-height: 2; color: #666; margin-bottom: 40px; border-left: 3px solid var(--accent-color); padding-left: 20px; }
+        .soul-text strong.red { color: var(--accent-color); font-weight: 600; }
+        .soul-text strong.black { color: #000; font-weight: 600; }
+
         .input-group label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 8px; color: #999; font-weight: 600; }
         input[type="date"] { background: transparent; border: none; border-bottom: 1px solid #ccc; font-size: 1.5rem; color: var(--ink-color); font-family: inherit; cursor: pointer; padding: 5px 0; width: 100%; max-width: 220px; }
         .stats { margin-top: 20px; font-size: 0.9rem; color: #666; line-height: 1.5; }
-        .soul-text strong.red { color: var(--accent-color); font-weight: 600; }
-
+        
         .hover-info { height: 30px; margin-top: 15px; font-weight: bold; font-size: 0.9rem; color: var(--accent-color); display: flex; align-items: center; }
         .hover-info.blue-text { color: var(--milestone-color); }
         .hover-info.gold-text { color: var(--birth-color); }
 
-        /* 登录框样式 */
+        /* Auth Styles */
         .auth-section { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; opacity: 0.8; transition: opacity 0.3s; }
         .auth-section:hover { opacity: 1; }
-        .auth-section label { color: #bbb !important; font-weight: 400 !important; }
         .auth-input { padding: 8px; background: transparent; border: 1px solid #ccc; color: var(--ink-color); width: 60%; font-size: 0.85rem; border-radius: 2px; }
-        .auth-input::placeholder { color: #999; opacity: 1; }
         .auth-btn { background: transparent; color: #999; border: 1px solid #ccc; padding: 8px 12px; cursor: pointer; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; border-radius: 2px; }
         .logout-btn { background: transparent; border: 1px solid #ccc; color: #999; padding: 4px 10px; cursor: pointer; font-size: 0.7rem; margin-top: 5px; }
-        
+
+        /* 【新增】分享按钮样式 */
+        .share-btn-container { margin-top: 20px; }
+        .share-btn {
+            background-color: var(--ink-color); color: #fff; border: none;
+            padding: 10px 20px; border-radius: 4px; font-size: 0.9rem; cursor: pointer;
+            display: flex; align-items: center; gap: 8px; transition: background 0.3s;
+        }
+        .share-btn:hover { background-color: #34495e; }
+        .share-icon { width: 16px; height: 16px; fill: currentColor; }
+
+        /* 【新增】隐藏的分享卡片模板 */
+        #share-card-container { position: absolute; top: -9999px; left: -9999px; }
+        .share-card {
+            width: 375px; height: 550px; 
+            background: linear-gradient(135deg, #1a1a1a, #2c3e50);
+            color: #fff; padding: 40px 30px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            font-family: sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+        /* 装饰背景 */
+        .share-card::before {
+            content: ''; position: absolute; top: -50px; right: -50px;
+            width: 200px; height: 200px; background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+        }
+        .card-header { opacity: 0.8; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; display: flex; justify-content: space-between; }
+        .card-main { text-align: center; margin-top: 20px; }
+        .card-percent { font-size: 96px; font-weight: 700; color: var(--accent-color); line-height: 1; text-shadow: 0 0 20px rgba(192, 57, 43, 0.3); }
+        .card-label { font-size: 18px; margin-top: 10px; opacity: 0.9; letter-spacing: 1px; }
+        .card-progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-top: 30px; overflow: hidden; }
+        .card-progress-fill { height: 100%; background: var(--accent-color); }
+        .card-footer { margin-top: auto; }
+        .card-quote { font-style: italic; font-size: 15px; line-height: 1.6; opacity: 0.8; margin-bottom: 20px; border-left: 2px solid var(--accent-color); padding-left: 15px; }
+        .card-author { font-size: 12px; opacity: 0.5; text-align: right; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+
+        /* 模态框通用样式 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+            z-index: 2000; display: none; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-card {
+            background: var(--bg-color); width: 85%; max-width: 400px; padding: 25px;
+            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transform: scale(0.9); transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-card { transform: scale(1); }
+        .modal-title { font-size: 0.9rem; text-transform: uppercase; color: #999; margin-bottom: 15px; font-weight: 600; }
+        .modal-textarea { width: 100%; height: 120px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; resize: none; font-size: 1rem; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
+        .btn { padding: 8px 16px; border-radius: 4px; cursor: pointer; border: none; font-weight: 500; }
+        .btn-cancel { background: transparent; color: #999; }
+        .btn-save { background: var(--ink-color); color: #fff; }
+        .btn-delete { color: var(--accent-color); background: transparent; margin-right: auto; }
+
+        /* 【新增】分享结果弹窗 */
+        #shareResultContent { text-align: center; background: transparent; box-shadow: none; padding: 0; }
+        #shareResultImg { max-width: 100%; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        .share-tip { color: #fff; margin-top: 15px; font-size: 0.9rem; opacity: 0.8; }
+        .close-share-btn { margin-top: 20px; padding: 8px 25px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: #fff; border-radius: 20px; cursor: pointer; }
+
+        .mobile-only-auth { display: none; }
         .mobile-visible { display: none; }
-        .mobile-hidden { display: inline; }
 
         @media (max-width: 768px) {
             body { display: block; height: auto; min-height: 100vh; overflow-y: scroll; padding: 40px 25px; }
-            .layout { flex-direction: column; width: 100%; height: auto; max-width: 500px; margin: 0 auto; gap: 40px; padding-bottom: 120px; }
+            .layout { flex-direction: column; width: 100%; height: auto; max-width: 500px; margin: 0 auto; gap: 40px; padding-bottom: 80px; }
             .sidebar { width: 100%; }
             .grid-container { display: block; width: 100%; height: auto; }
             .grid { aspect-ratio: unset; gap: 1px; }
@@ -75,72 +144,11 @@
             .hover-info:not(:empty) { opacity: 1; }
             .mobile-hidden { display: none; }
             .mobile-visible { display: block; }
-        }
-
-        /* --- 新增：优雅的模态弹窗 (Modal) --- */
-.modal-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(255, 255, 255, 0.1); /* 轻微遮罩 */
-    backdrop-filter: blur(5px); /* 磨砂玻璃效果 */
-    -webkit-backdrop-filter: blur(5px);
-    z-index: 1000;
-    display: none; justify-content: center; align-items: center;
-    opacity: 0; transition: opacity 0.3s ease;
-}
-.modal-overlay.active { display: flex; opacity: 1; }
-
-.modal-card {
-    background: var(--bg-color);
-    width: 85%; max-width: 400px;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    border: 1px solid #e0e0e0;
-    transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-.modal-overlay.active .modal-card { transform: scale(1); }
-
-.modal-title { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 15px; font-weight: 600; }
-.modal-textarea {
-    width: 100%; height: 120px;
-    background: #fff; border: 1px solid #ccc; border-radius: 6px;
-    padding: 10px; font-size: 1rem; color: var(--ink-color); font-family: inherit;
-    resize: none; margin-bottom: 20px;
-}
-.modal-textarea:focus { border-color: var(--ink-color); }
-
-.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
-.btn { padding: 8px 16px; border-radius: 4px; font-size: 0.9rem; cursor: pointer; border: none; font-weight: 500; }
-.btn-cancel { background: transparent; color: #999; }
-.btn-save { background: var(--ink-color); color: #fff; }
-.btn-delete { color: var(--accent-color); background: transparent; margin-right: auto; } /* 删除按钮在左边 */
-
-        .mobile-only-auth {
-            display: none;
-        }
-
-        @media (max-width: 768px) {
-            .desktop-only-auth {
-                display: none;
-            }
-            .mobile-only-auth {
-                display: block;
-                margin-top: 40px; /* Add some space above the mobile auth section */
-                text-align: center; /* Center align the content */
-            }
-            .mobile-only-auth .auth-input {
-                width: auto; /* Override the fixed width */
-                flex: 1; /* Allow the input to grow */
-            }
-            .mobile-only-auth label {
-                display: inline-block;
-                margin-bottom: 10px;
-            }
-            .mobile-only-auth > div > div {
-                max-width: 400px; /* Limit the max width */
-                margin-left: auto;
-                margin-right: auto;
-            }
+            .desktop-only-auth { display: none; }
+            .mobile-only-auth { display: block; margin-top: 40px; text-align: center; }
+            
+            /* 移动端分享按钮位置优化 */
+            .share-btn-container { display: flex; justify-content: center; margin-bottom: 20px; }
         }
     </style>
 </head>
@@ -166,9 +174,16 @@
             
             <div class="input-group">
                 <label>DATE OF BIRTH</label>
-                <input type="date" id="birthdate" value="2023-01-01">
+                <input type="date" id="birthdate" value="1990-01-01">
             </div>
             <div class="stats" id="stats"></div>
+
+            <div class="share-btn-container">
+                <button class="share-btn" onclick="generateShareCard()">
+                    <svg class="share-icon" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                    生成人生进度卡片
+                </button>
+            </div>
 
             <div class="auth-section desktop-only-auth">
                 <div id="login-form">
@@ -186,11 +201,16 @@
             </div>
 
             <div class="hover-info" id="hoverInfo"></div>
+            
+            <div style="margin-top: 30px; font-size: 0.8rem; color: #bbb; text-align: center;">
+                <a href="#" onclick="alert('加微信: Muyun_Indie (备注: LifeGrid)')" style="color: #999; text-decoration: none; border-bottom: 1px dashed #ccc;">Have Feedback?</a>
+            </div>
         </aside>
         
         <main class="grid-container">
             <div id="grid" class="grid"></div>
         </main>
+        
         <div class="auth-section mobile-only-auth">
             <div id="login-form-mobile">
                 <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #999; font-weight: 600;">Cloud Sync</label>
@@ -215,6 +235,38 @@
                 <button class="btn btn-delete" onclick="deleteNote()">DELETE</button>
                 <button class="btn btn-cancel" onclick="closeModal()">CANCEL</button>
                 <button class="btn btn-save" onclick="saveFromModal()">SAVE</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="shareResultModal">
+        <div class="modal-card" id="shareResultContent">
+            <div id="imgContainer"></div>
+            <div class="share-tip">长按图片保存，分享到朋友圈 📸</div>
+            <button class="close-share-btn" onclick="document.getElementById('shareResultModal').classList.remove('active')">关闭</button>
+        </div>
+    </div>
+
+    <div id="share-card-container">
+        <div id="share-card" class="share-card">
+            <div class="card-header">
+                <span>Life Grid</span>
+                <span class="card-date-text">2026.01.02</span>
+            </div>
+            <div class="card-main">
+                <div class="card-percent" id="cardPercent">0%</div>
+                <div class="card-label">的人生进度条已加载</div>
+                <div class="card-progress-bar">
+                    <div class="card-progress-fill" id="cardProgressFill" style="width: 0%;"></div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="card-quote">
+                    "种一棵树最好的时间是十年前，<br>其次是现在。"
+                </div>
+                <div class="card-author">
+                    Designed by 牧云 | Life Grid
+                </div>
             </div>
         </div>
     </div>
@@ -245,133 +297,73 @@
     const WEEKS_PER_YEAR = 52;
     const TOTAL_WEEKS = TOTAL_YEARS * WEEKS_PER_YEAR;
 
-    let milestones = {};       // 内存中的数据源 (Single Source of Truth)
-    let currentUser = null;    // 当前用户状态
-    let lastClickedIndex = -1; // 手机端点击防抖
+    let milestones = {};       
+    let currentUser = null;    
+    let lastClickedIndex = -1; 
+    let currentLifePercent = 0; // 全局变量，用于分享
 
-    // URL 清理工具 (防止 URL 里一直带着 token)
     const CLEAN_URL = window.location.origin + window.location.pathname;
 
-    // ==========================================
-    // 核心逻辑 1: 状态机控制器 (Central Controller)
-    // ==========================================
+    // ================= Auth & Data Logic =================
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        console.log("🔒 Auth State Changed:", event);
-
-        // 1. 如果是从邮件链接跳回来的，清理 URL
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
             window.history.replaceState({}, document.title, CLEAN_URL);
         }
-
         if (session) {
-            // === 状态：已登录 ===
-            console.log("✅ User detected:", session.user.id);
             currentUser = session.user;
-            
-            // 更新 UI 为“已登录”
             updateAuthUI(true);
-            
-            // 执行核心同步逻辑 (合并本地和云端)
             await syncAndLoadData();
         } else {
-            // === 状态：未登录 / 登出 ===
-            console.log("👋 Guest mode");
             currentUser = null;
-            
-            // 更新 UI 为“未登录”
             updateAuthUI(false);
-            
-            // 加载纯本地数据
             loadLocalOnly();
         }
     });
 
-    // ==========================================
-    // 核心逻辑 2: 数据加载与同步 (The Brain)
-    // ==========================================
-    
-    // 场景 A: 登录后的同步 (Merge Logic)
     async function syncAndLoadData() {
         try {
-            // 1. 先把手里现有的本地数据攥紧，别丢了
             const localRaw = localStorage.getItem('lifeGridMilestones');
             const localData = localRaw ? JSON.parse(localRaw) : {};
-            
-            // 2. 去云端把数据拉下来
-            const { data: cloudData, error } = await supabaseClient
-                .from('test_milestones')
-                .select('week_index, content');
-
+            const { data: cloudData, error } = await supabaseClient.from('test_milestones').select('week_index, content');
             if (error) throw error;
 
-            // 3. 建立云端数据索引 (Map结构方便查找)
             const cloudMap = new Map();
             cloudData.forEach(row => cloudMap.set(row.week_index, row.content));
 
-            // 4. 【关键】差异比对：找出“本地有，但云端没有”的数据
             const updatesToUpload = [];
             for (const [key, content] of Object.entries(localData)) {
                 const weekIdx = parseInt(key);
-                // 只有当云端这个格子是空的，且本地有内容时，才视为“新笔记”上传
-                // (防止覆盖云端已有的旧数据，云端权重 > 本地权重)
                 if (!cloudMap.has(weekIdx) && content) {
-                    updatesToUpload.push({
-                        user_id: currentUser.id,
-                        week_index: weekIdx,
-                        content: content
-                    });
+                    updatesToUpload.push({ user_id: currentUser.id, week_index: weekIdx, content: content });
                 }
             }
 
-            // 5. 如果有需要上传的，执行批量上传 (Upsert)
             if (updatesToUpload.length > 0) {
-                console.log("🚀 Uploading local notes to cloud...", updatesToUpload);
-                const { error: uploadError } = await supabaseClient
-                    .from('test_milestones')
-                    .upsert(updatesToUpload, { onConflict: 'user_id, week_index' });
-                
-                if (uploadError) console.error("Sync upload failed:", uploadError);
-                else {
-                    // 上传成功后，把这些数据也加到 cloudMap 里，准备渲染
-                    updatesToUpload.forEach(item => cloudMap.set(item.week_index, item.content));
-                }
+                await supabaseClient.from('test_milestones').upsert(updatesToUpload, { onConflict: 'user_id, week_index' });
+                updatesToUpload.forEach(item => cloudMap.set(item.week_index, item.content));
             }
 
-            // 6. 最终合并：将 cloudMap 转回 milestones 对象
             milestones = {};
             for (const [weekIdx, content] of cloudMap.entries()) {
                 milestones[weekIdx] = content;
             }
-
-            // 7. 【双写】更新本地缓存，确保离线也能看
             localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
-            
-            // 8. 渲染
             renderGrid();
-            console.log("✨ Sync Complete. Data merged.");
-
         } catch (err) {
             console.error("Sync Critical Error:", err);
-            alert("Sync failed. Check console. Using local data for now.");
-            loadLocalOnly(); // 降级处理
+            loadLocalOnly();
         }
     }
 
-    // 场景 B: 纯本地加载 (Guest Logic)
     function loadLocalOnly() {
         const local = localStorage.getItem('lifeGridMilestones');
         milestones = local ? JSON.parse(local) : {};
         renderGrid();
     }
 
-    // ==========================================
-    // 核心逻辑 3: 动作 (Login/Logout/Save)
-    // ==========================================
-
-        async function handleLogin(isMobile = false) {
+    async function handleLogin(isMobile = false) {
         const emailId = isMobile ? 'email-mobile' : 'email';
         const btnId = isMobile ? 'login-btn-mobile' : 'login-btn-desktop';
-        
         const email = document.getElementById(emailId).value.trim();
         const loginBtn = document.getElementById(btnId);
         const originalText = loginBtn.textContent;
@@ -381,154 +373,106 @@
             setTimeout(() => { loginBtn.textContent = originalText; }, 2000);
             return;
         }
-
-        // 1. 立即提供视觉反馈
         loginBtn.disabled = true;
-        loginBtn.textContent = '正在发送...';
+        loginBtn.textContent = '发送中...';
 
         try {
-            // 2. 发送 Magic Link
-            const { error } = await supabaseClient.auth.signInWithOtp({
-                email,
-                options: { emailRedirectTo: CLEAN_URL }
-            });
-
+            const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: CLEAN_URL } });
             if (error) throw error;
-
-            // 3. 成功反馈
-            alert('✨ Magic Link sent! Check your inbox.');
-            loginBtn.textContent = '✅ 邮件已发送';
-
+            alert('✨ 登录邮件已发送，请查收邮箱！');
+            loginBtn.textContent = '✅ 已发送';
         } catch (error) {
-            // 4. 失败反馈
             console.error('Login error:', error.message);
-            loginBtn.textContent = '❌ 发送失败';
+            loginBtn.textContent = '❌ 失败';
         } finally {
-            // 5. 无论成功失败，2.5秒后恢复按钮
-            setTimeout(() => {
-                loginBtn.disabled = false;
-                loginBtn.textContent = originalText;
-            }, 2500);
+            setTimeout(() => { loginBtn.disabled = false; loginBtn.textContent = originalText; }, 2500);
         }
     }
 
     async function handleLogout() {
-        if (!confirm("Confirm Logout? This will clear local data.")) return;
-
-        // 1. Supabase 登出
+        if (!confirm("确定退出登录？本地数据将清除。")) return;
         await supabaseClient.auth.signOut();
-
-        // 2. 【核弹级清理】用户要求：登出即重置
-        localStorage.removeItem('lifeGridMilestones'); // 只清空数据，保留生日配置
-        milestones = {};
-        
-        // 3. UI 状态会在 onAuthStateChange 里自动更新，这里不需要手动调 updateAuthUI
-        // 但为了视觉反馈快，可以强制刷新一下
+        localStorage.removeItem('lifeGridMilestones'); 
         window.location.reload(); 
     }
 
     async function saveMilestone(index, content) {
-        // 1. 内存更新
         if (!content) delete milestones[index]; 
         else milestones[index] = content;
-        
-        // 2. 本地持久化 (无论是否登录，先存本地)
         localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
         renderGrid();
-
-        // 3. 如果已登录，异步同步到云端
         if (currentUser) {
             try {
-                if (!content) {
-                    await supabaseClient.from('test_milestones').delete().eq('week_index', index);
-                } else {
-                    await supabaseClient.from('test_milestones').upsert({
-                        user_id: currentUser.id,
-                        week_index: index,
-                        content
-                    }, { onConflict: 'user_id, week_index' });
-                }
-            } catch (e) {
-                console.error("Cloud save failed:", e);
-                // 这里可以加一个 UI 提示“保存云端失败”，但为了极简先不加
-            }
+                if (!content) await supabaseClient.from('test_milestones').delete().eq('week_index', index);
+                else await supabaseClient.from('test_milestones').upsert({ user_id: currentUser.id, week_index: index, content }, { onConflict: 'user_id, week_index' });
+            } catch (e) { console.error("Cloud save failed:", e); }
         }
     }
 
-    // ==========================================
-    // UI 辅助函数
-    // ==========================================
     function updateAuthUI(isLoggedIn) {
-        // 同时控制 PC 端和 Mobile 端的 UI
         const displays = isLoggedIn ? ['none', 'block'] : ['block', 'none'];
-        
         [loginForm, loginFormMobile].forEach(el => { if(el) el.style.display = displays[0]; });
         [userInfo, userInfoMobile].forEach(el => { if(el) el.style.display = displays[1]; });
     }
 
-    // ==========================================
-    // 模态框逻辑 (Modal)
-    // ==========================================
+    // ================= Modal Logic =================
     let currentEditingIndex = -1; 
-
     function openModal(index, content, age) {
         currentEditingIndex = index;
         modalInput.value = content || '';
-        
         if (index === 0) modalTitle.textContent = "👶 The Beginning";
         else if (content) modalTitle.textContent = `📝 Edit Note (Age ${age})`;
         else modalTitle.textContent = `✨ New Memory (Age ${age})`;
-
         modal.classList.add('active');
-        // 延时聚焦，防止移动端键盘弹出太快
         setTimeout(() => modalInput.focus(), 100); 
     }
+    function closeModal() { modal.classList.remove('active'); modalInput.blur(); }
+    function saveFromModal() { if (currentEditingIndex === -1) return; saveMilestone(currentEditingIndex, modalInput.value.trim()); closeModal(); }
+    function deleteNote() { if (currentEditingIndex === -1) return; if (confirm("Clear this memory?")) { saveMilestone(currentEditingIndex, null); closeModal(); } }
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-    function closeModal() {
-        modal.classList.remove('active');
-        modalInput.blur();
+    // ================= 【新增】分享生成逻辑 =================
+    function generateShareCard() {
+        // 1. 填充数据
+        document.getElementById('cardPercent').textContent = currentLifePercent + '%';
+        document.getElementById('cardProgressFill').style.width = currentLifePercent + '%';
+        document.querySelector('.card-date-text').textContent = new Date().toLocaleDateString();
+
+        // 2. 显示Loading (可选，简单起见省略)
+        
+        // 3. 截图
+        const cardEl = document.getElementById('share-card');
+        html2canvas(cardEl, { scale: 2, backgroundColor: null }).then(canvas => {
+            const imgData = canvas.toDataURL('image/png');
+            const imgContainer = document.getElementById('imgContainer');
+            imgContainer.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = imgData;
+            img.id = 'shareResultImg';
+            imgContainer.appendChild(img);
+            
+            // 4. 显示结果弹窗
+            document.getElementById('shareResultModal').classList.add('active');
+        });
     }
 
-    function saveFromModal() {
-        if (currentEditingIndex === -1) return;
-        const content = modalInput.value.trim();
-        saveMilestone(currentEditingIndex, content);
-        closeModal();
-    }
-
-    function deleteNote() {
-        if (currentEditingIndex === -1) return;
-        if (confirm("Clear this memory?")) {
-            saveMilestone(currentEditingIndex, null);
-            closeModal();
-        }
-    }
-    
-    // 点击遮罩关闭
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
-
-    // ==========================================
-    // 网格渲染 (Renderer)
-    // ==========================================
+    // ================= Grid Renderer =================
     function renderGrid() {
         gridEl.innerHTML = '';
         const birthdate = new Date(dateInput.value);
         const today = new Date();
         const oneWeek = 1000 * 60 * 60 * 24 * 7;
         
-        // 计算周数
         let diffWeeks = Math.floor((today - birthdate) / oneWeek);
         diffWeeks = Math.max(0, Math.min(diffWeeks, TOTAL_WEEKS));
         
+        // 更新全局统计数据，供分享使用
+        currentLifePercent = ((diffWeeks / TOTAL_WEEKS) * 100).toFixed(1);
         const left = TOTAL_WEEKS - diffWeeks;
-        const pct = ((diffWeeks / TOTAL_WEEKS) * 100).toFixed(1);
         
-        statsEl.innerHTML = `Used: <strong>${diffWeeks}</strong> weeks (${pct}%)<br>Remaining: <strong>${left}</strong> weeks`;
+        statsEl.innerHTML = `Used: <strong>${diffWeeks}</strong> weeks (${currentLifePercent}%)<br>Remaining: <strong>${left}</strong> weeks`;
 
         const frag = document.createDocumentFragment();
-
         for (let i = 0; i < TOTAL_WEEKS; i++) {
             const div = document.createElement('div');
             div.className = 'cell';
@@ -536,7 +480,6 @@
             const year = birthdate.getFullYear() + age;
             const note = milestones[i];
             
-            // 状态计算
             const isPast = i < diffWeeks;
             const isCurrent = i === diffWeeks;
             const isBirth = i === 0;
@@ -547,7 +490,6 @@
             if (isBirth) div.classList.add('birth');
             else if (note) div.classList.add('milestone');
 
-            // 交互事件
             const showInfo = () => {
                 hoverInfoEl.className = 'hover-info';
                 if (isBirth) { hoverInfoEl.textContent = `👶 Born in ${year}`; hoverInfoEl.classList.add('gold-text'); }
@@ -555,69 +497,37 @@
                 else if (isCurrent) hoverInfoEl.textContent = 'NOW · 此刻';
                 else hoverInfoEl.textContent = `${year} (Age ${age})`;
             };
-
-            const edit = () => {
-                const currentVal = milestones[i];
-                openModal(i, currentVal, age);
-            };
+            const edit = () => openModal(i, milestones[i], age);
 
             div.addEventListener('mouseenter', showInfo);
-            
-            // 统一的点击处理 (兼容手机/PC)
             div.addEventListener('click', e => {
                 e.stopPropagation();
-                // 手机端逻辑：第一次点击选定，第二次点击编辑
                 if (window.innerWidth <= 768) {
                     if (lastClickedIndex !== i) {
                         showInfo();
                         document.querySelector('.cell.selected')?.classList.remove('selected');
                         div.classList.add('selected');
                         lastClickedIndex = i;
-                    } else { 
-                        edit(); 
-                        div.classList.remove('selected'); 
-                        lastClickedIndex = -1; 
-                    }
-                } else { 
-                    // PC端直接编辑
-                    showInfo(); 
-                    edit(); 
-                }
+                    } else { edit(); div.classList.remove('selected'); lastClickedIndex = -1; }
+                } else { showInfo(); edit(); }
             });
-            
             frag.appendChild(div);
         }
         gridEl.appendChild(frag);
-        
-        // 鼠标移出网格清空信息
-        gridEl.addEventListener('mouseleave', () => { 
-            if (window.innerWidth > 768) hoverInfoEl.textContent = ''; 
-        });
+        gridEl.addEventListener('mouseleave', () => { if (window.innerWidth > 768) hoverInfoEl.textContent = ''; });
     }
 
-    // ==========================================
-    // 初始化 (Init)
-    // ==========================================
+    // ================= Init =================
     const savedBirth = localStorage.getItem('lifeGridBirthdate');
     if (savedBirth) dateInput.value = savedBirth;
-    
-    dateInput.addEventListener('change', () => { 
-        localStorage.setItem('lifeGridBirthdate', dateInput.value); 
-        renderGrid(); 
-    });
-
-    // 点击空白处取消手机端选中状态
+    dateInput.addEventListener('change', () => { localStorage.setItem('lifeGridBirthdate', dateInput.value); renderGrid(); });
     document.body.addEventListener('click', e => {
         if (window.innerWidth <= 768 && !e.target.classList.contains('cell')) {
             document.querySelector('.cell.selected')?.classList.remove('selected');
-            lastClickedIndex = -1; 
-            hoverInfoEl.textContent = ''; 
+            lastClickedIndex = -1; hoverInfoEl.textContent = ''; 
         }
     });
-
-    // 先渲染一次空的，等待 Auth 状态回调自动填充数据
     renderGrid();
-
 </script>
 </body>
 </html>
