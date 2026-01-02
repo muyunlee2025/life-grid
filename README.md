@@ -49,7 +49,7 @@ create table test_milestones (
 **牧云 (Muyun)**
 
 * Indie Dev & Dad.
-* Follow my journey: [x（twitter）: https://x.com/muyun_dev][公众号名称：牧云和Louie一起长大]
+* Follow my journey: [x（twitter）: https://x.com/muyun_dev] (公众号名称：牧云和Louie一起长大)
 
 ## 📝 License
 
