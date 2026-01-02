@@ -41,6 +41,7 @@
             -moz-user-select: none !important;
             user-select: none !important;
             -webkit-touch-callout: none !important;
+            caret-color: transparent !important;
         }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -64,7 +65,11 @@
         .cell.current { background-color: var(--accent-color); box-shadow: 0 0 8px var(--accent-color); z-index: 2; }
         .cell.milestone { background-color: var(--milestone-color) !important; z-index: 1; }
         .cell.birth { background-color: var(--birth-color) !important; z-index: 3; }
-        .cell.selected { transform: scale(1.5); z-index: 10; border: 1px solid #fff; } /* 手机端选中态 */
+        .cell.selected {
+            z-index: 10;
+            outline: 2px solid #fff; /* 高亮边框，但不改变尺寸 */
+            box-shadow: 0 0 4px 2px rgba(255,255,255,0.8); /* 轻微发光 */
+        } /* 手机端选中态 */
 
         .cell:hover { transform: scale(1.8); z-index: 10; background-color: #dcdcdc; border-radius: 2px; }
         
