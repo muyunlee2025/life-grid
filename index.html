@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Life Grid (Cloud Sync)</title>
+    <title>Life Grid (Final Version)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -17,8 +17,31 @@
             --text-muted: #7f8c8d;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
-        input, textarea { user-select: auto; } /* 输入框允许选择 */
+        /* --- 核心修复 1: 禁止系统默认触摸行为 (解决白色横条/光标) --- */
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+            outline: none; 
+            -webkit-user-select: none; /* Chrome/Safari */
+            -moz-user-select: none;    /* Firefox */
+            -ms-user-select: none;     /* IE/Edge */
+            user-select: none;         /* 标准 */
+            -webkit-touch-callout: none; /* 禁止iOS长按菜单 */
+        }
+        
+        /* 允许输入框正常输入 */
+        input, textarea { 
+            -webkit-user-select: auto;
+            user-select: auto; 
+        }
+
+        /* 针对 Grid 区域进行核弹级禁止，防止误触 */
+        .grid, .cell {
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            user-select: none !important;
+            -webkit-touch-callout: none !important;
+        }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -65,7 +88,7 @@
         .auth-btn { background: transparent; color: #999; border: 1px solid #ccc; padding: 8px 12px; cursor: pointer; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; border-radius: 2px; }
         .logout-btn { background: transparent; border: 1px solid #ccc; color: #999; padding: 4px 10px; cursor: pointer; font-size: 0.7rem; margin-top: 5px; }
 
-        /* 【新增】分享按钮样式 */
+        /* 分享按钮样式 */
         .share-btn-container { margin-top: 20px; }
         .share-btn {
             background-color: var(--ink-color); color: #fff; border: none;
@@ -75,7 +98,7 @@
         .share-btn:hover { background-color: #34495e; }
         .share-icon { width: 16px; height: 16px; fill: currentColor; }
 
-        /* 【新增】隐藏的分享卡片模板 */
+        /* 隐藏的分享卡片模板 */
         #share-card-container { position: absolute; top: -9999px; left: -9999px; }
         .share-card {
             width: 375px; height: 550px; 
@@ -86,7 +109,6 @@
             position: relative;
             overflow: hidden;
         }
-        /* 装饰背景 */
         .share-card::before {
             content: ''; position: absolute; top: -50px; right: -50px;
             width: 200px; height: 200px; background: rgba(255,255,255,0.05);
@@ -94,7 +116,33 @@
         }
         .card-header { opacity: 0.8; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; display: flex; justify-content: space-between; }
         .card-main { text-align: center; margin-top: 20px; }
-        .card-percent { font-size: 96px; font-weight: 700; color: var(--accent-color); line-height: 1; text-shadow: 0 0 20px rgba(192, 57, 43, 0.3); }
+        
+        /* --- 核心修复 2: 数字和百分号物理隔离 (解决 html2canvas 重叠) --- */
+        .card-percent-container {
+            text-align: center;
+            white-space: nowrap; /* 强制不换行 */
+            margin-bottom: 10px;
+        }
+        .card-percent-num {
+            display: inline-block; /* 块级显示 */
+            font-size: 96px;
+            font-weight: 700;
+            color: var(--accent-color);
+            text-shadow: 0 0 20px rgba(192, 57, 43, 0.3);
+            line-height: 1;
+        }
+        .card-percent-unit {
+            display: inline-block;
+            font-size: 40px;
+            font-weight: 700;
+            color: var(--accent-color);
+            opacity: 0.8;
+            margin-left: 15px; /* 【关键】物理边距，强制推开 */
+            vertical-align: baseline;
+            position: relative;
+            top: -5px;
+        }
+
         .card-label { font-size: 18px; margin-top: 10px; opacity: 0.9; letter-spacing: 1px; }
         .card-progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-top: 30px; overflow: hidden; }
         .card-progress-fill { height: 100%; background: var(--accent-color); }
@@ -124,7 +172,7 @@
         .btn-save { background: var(--ink-color); color: #fff; }
         .btn-delete { color: var(--accent-color); background: transparent; margin-right: auto; }
 
-        /* 【新增】分享结果弹窗 */
+        /* 分享结果弹窗 */
         #shareResultContent { text-align: center; background: transparent; box-shadow: none; padding: 0; }
         #shareResultImg { max-width: 100%; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
         .share-tip { color: #fff; margin-top: 15px; font-size: 0.9rem; opacity: 0.8; }
@@ -146,8 +194,6 @@
             .mobile-visible { display: block; }
             .desktop-only-auth { display: none; }
             .mobile-only-auth { display: block; margin-top: 40px; text-align: center; }
-            
-            /* 移动端分享按钮位置优化 */
             .share-btn-container { display: flex; justify-content: center; margin-bottom: 20px; }
         }
     </style>
@@ -254,7 +300,10 @@
                 <span class="card-date-text">2026.01.02</span>
             </div>
             <div class="card-main">
-                <div class="card-percent" id="cardPercent">0%</div>
+                <div class="card-percent-container">
+                    <span class="card-percent-num" id="cardPercentNum">0.0</span>
+                    <span class="card-percent-unit">%</span>
+                </div>
                 <div class="card-label">的人生进度条已加载</div>
                 <div class="card-progress-bar">
                     <div class="card-progress-fill" id="cardProgressFill" style="width: 0%;"></div>
@@ -431,18 +480,20 @@
     function deleteNote() { if (currentEditingIndex === -1) return; if (confirm("Clear this memory?")) { saveMilestone(currentEditingIndex, null); closeModal(); } }
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-    // ================= 【新增】分享生成逻辑 =================
+    // ================= 分享生成逻辑 =================
     function generateShareCard() {
-        // 1. 填充数据
-        document.getElementById('cardPercent').textContent = currentLifePercent + '%';
+        // 1. 填充数据 (使用分离后的 ID)
+        document.getElementById('cardPercentNum').textContent = currentLifePercent;
+        // 单位是静态的，不需要动
         document.getElementById('cardProgressFill').style.width = currentLifePercent + '%';
         document.querySelector('.card-date-text').textContent = new Date().toLocaleDateString();
 
-        // 2. 显示Loading (可选，简单起见省略)
-        
-        // 3. 截图
+        // 2. 截图
         const cardEl = document.getElementById('share-card');
-        html2canvas(cardEl, { scale: 2, backgroundColor: null }).then(canvas => {
+        html2canvas(cardEl, { 
+            scale: 2, 
+            backgroundColor: null 
+        }).then(canvas => {
             const imgData = canvas.toDataURL('image/png');
             const imgContainer = document.getElementById('imgContainer');
             imgContainer.innerHTML = '';
@@ -451,7 +502,7 @@
             img.id = 'shareResultImg';
             imgContainer.appendChild(img);
             
-            // 4. 显示结果弹窗
+            // 3. 显示结果弹窗
             document.getElementById('shareResultModal').classList.add('active');
         });
     }
@@ -521,6 +572,7 @@
     const savedBirth = localStorage.getItem('lifeGridBirthdate');
     if (savedBirth) dateInput.value = savedBirth;
     dateInput.addEventListener('change', () => { localStorage.setItem('lifeGridBirthdate', dateInput.value); renderGrid(); });
+    // 全局点击取消选中
     document.body.addEventListener('click', e => {
         if (window.innerWidth <= 768 && !e.target.classList.contains('cell')) {
             document.querySelector('.cell.selected')?.classList.remove('selected');
