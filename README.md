@@ -26,3 +26,31 @@ Life Grid 是一个极简主义的人生可视化工具。灵感来源于 "Your 
 1. 克隆仓库:
    ```bash
    git clone [https://github.com/muyunlee2025/life-grid.git](https://github.com/muyunlee2025/life-grid.git)
+
+```
+
+2. 替换 `index.html` 中的 Supabase 配置 (URL & Key)。
+3. 在 Supabase 后台创建表结构:
+```sql
+create table test_milestones (
+  user_id uuid references auth.users not null,
+  week_index int not null,
+  content text,
+  primary key (user_id, week_index)
+);
+
+```
+
+
+4. 启动本地服务器 (Live Server) 即可。
+
+## 👨‍💻 作者 (Author)
+
+**牧云 (Muyun)**
+
+* Indie Dev & Dad.
+* Follow my journey: [x（twitter）: https://x.com/muyun_dev][公众号名称：牧云和Louie一起长大]
+
+## 📝 License
+
+MIT
