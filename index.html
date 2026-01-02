@@ -81,7 +81,7 @@
         .input-group label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 8px; color: #999; font-weight: 600; }
         input[type="date"] { background: transparent; border: none; border-bottom: 1px solid #ccc; font-size: 1.5rem; color: var(--ink-color); font-family: inherit; cursor: pointer; padding: 5px 0; width: 100%; max-width: 220px; }
         .stats { margin-top: 20px; font-size: 0.9rem; color: #666; line-height: 1.5; }
-        
+
         .hover-info { height: 30px; margin-top: 15px; font-weight: bold; font-size: 0.9rem; color: var(--accent-color); display: flex; align-items: center; }
         .hover-info.blue-text { color: var(--milestone-color); }
         .hover-info.gold-text { color: var(--birth-color); }
@@ -180,6 +180,12 @@
         /* 分享结果弹窗 */
         #shareResultContent { text-align: center; background: transparent; box-shadow: none; padding: 0; }
         #shareResultImg { max-width: 100%; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+        /* --- 核心修复 3: 恢复分享图片的長按保存功能 --- */
+        #shareResultImg {
+            -webkit-user-select: auto !important;
+            user-select: auto !important;
+            -webkit-touch-callout: default !important;
+        }
         .share-tip { color: #fff; margin-top: 15px; font-size: 0.9rem; opacity: 0.8; }
         .close-share-btn { margin-top: 20px; padding: 8px 25px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: #fff; border-radius: 20px; cursor: pointer; }
 
@@ -394,7 +400,7 @@
 
             if (updatesToUpload.length > 0) {
                 await supabaseClient.from('test_milestones').upsert(updatesToUpload, { onConflict: 'user_id, week_index' });
-                updatesToUpload.forEach(item => cloudMap.set(item.week_index, item.content));
+                    updatesToUpload.forEach(item => cloudMap.set(item.week_index, item.content));
             }
 
             milestones = {};
@@ -415,7 +421,7 @@
         renderGrid();
     }
 
-    async function handleLogin(isMobile = false) {
+        async function handleLogin(isMobile = false) {
         const emailId = isMobile ? 'email-mobile' : 'email';
         const btnId = isMobile ? 'login-btn-mobile' : 'login-btn-desktop';
         const email = document.getElementById(emailId).value.trim();
