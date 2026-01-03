@@ -83,6 +83,51 @@
             color: #fff; padding: 40px 30px; display: flex; flex-direction: column; justify-content: space-between;
             font-family: sans-serif; position: relative; overflow: hidden;
         }
+
+        /* Polaroid Share Card */
+        .polaroid-card {
+            width: 375px; height: 520px; background: #f7f6f2; color: #111;
+            padding: 18px 18px 16px 18px;
+            display: flex; flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+            border-radius: 18px;
+            box-shadow: 0 18px 60px rgba(0,0,0,0.25);
+            position: relative;
+            overflow: hidden;
+        }
+        .polaroid-photo {
+            width: 100%;
+            flex: 1;
+            background: #e9e7e0;
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+        }
+        .polaroid-photo img {
+            width: 100%; height: 100%; object-fit: cover; display: block;
+        }
+        .polaroid-meta {
+            padding: 14px 2px 0 2px;
+        }
+        .polaroid-meta-top {
+            display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+            font-weight: 700; letter-spacing: 0.2px;
+        }
+        .polaroid-date { font-size: 16px; color: #111; }
+        .polaroid-age { font-size: 16px; color: #c0392b; }
+        .polaroid-note { margin-top: 8px; font-size: 15px; line-height: 1.55; color: #2c3e50; white-space: pre-wrap; word-break: break-word; }
+        .polaroid-watermark {
+            margin-top: 12px;
+            font-size: 12px;
+            letter-spacing: 1px;
+            color: rgba(44,62,80,0.55);
+            text-transform: uppercase;
+        }
+        .polaroid-noimg {
+            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+            color: rgba(44,62,80,0.55);
+            font-size: 14px;
+        }
         .share-card::before { content: ''; position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.05); border-radius: 50%; }
         .card-header { opacity: 0.8; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; display: flex; justify-content: space-between; }
         .card-main { text-align: center; margin-top: 20px; }
@@ -178,6 +223,9 @@
         
         .timeline-card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); transition: all 0.2s ease; cursor: pointer; border: 1px solid transparent; position: relative; }
         .timeline-card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.1); }
+        .timeline-share-btn { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 10px; border: 1px solid #eee; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 6px 20px rgba(0,0,0,0.06); }
+        .timeline-share-btn:hover { transform: translateY(-1px); border-color: rgba(0,0,0,0.12); }
+        .timeline-share-btn svg { width: 18px; height: 18px; fill: #2c3e50; opacity: 0.9; }
         .timeline-meta { display: flex; justify-content: space-between; font-size: 0.75rem; color: #999; margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px dashed #eee; padding-bottom: 8px; }
         .meta-age { color: var(--accent-color); font-weight: 600; }
         .timeline-img-box { width: 100%; margin-bottom: 15px; border-radius: 8px; overflow: hidden; background: #f9f9f9; }
@@ -228,6 +276,7 @@
                 <div id="user-info" style="display: none;">
                     <span style="color: #666; font-weight: 500; font-size: 0.85rem;"><span style="font-size: 0.5rem; vertical-align: middle; margin-right: 4px;">🟢</span>Cloud Connected</span><br>
                     <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">Data is safe in Supabase</div>
+                    <button type="button" onclick="openDisplayNameModal(true)" class="logout-btn" style="margin-top:10px;">EDIT NAME</button>
                     <button type="button" onclick="handleLogout()" class="logout-btn">LOGOUT</button>
                 </div>
             </div>
@@ -259,6 +308,7 @@
             <div id="user-info-mobile" style="display: none;">
                 <span style="color: #666; font-weight: 500; font-size: 0.85rem;"><span style="font-size: 0.5rem; vertical-align: middle; margin-right: 4px;">🟢</span>Cloud Connected</span><br>
                 <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">Data is safe in Supabase</div>
+                <button type="button" onclick="openDisplayNameModal(true)" class="logout-btn" style="margin-top:10px;">EDIT NAME</button>
                 <button type="button" onclick="handleLogout()" class="logout-btn">LOGOUT</button>
             </div>
         </div>
@@ -294,6 +344,23 @@
             <div id="imgContainer"></div>
             <div class="share-tip">长按图片保存，分享到朋友圈 📸</div>
             <button type="button" class="close-share-btn" onclick="document.getElementById('shareResultModal').classList.remove('active')">关闭</button>
+        </div>
+    </div>
+
+    <!-- Display Name Modal (first share) -->
+    <div class="modal-overlay" id="displayNameModal">
+        <div class="modal-card">
+            <div class="modal-title">首次分享 · 设置署名</div>
+            <div style="font-size: 0.9rem; color: #666; line-height: 1.6; margin-bottom: 12px;">
+                你的署名会显示在图片水印中：<br>
+                <span style="color:#2c3e50; font-weight:600;">Life Grid - Recorded by 你的署名</span>
+            </div>
+            <input id="displayNameInput" type="text" placeholder="例如：Dad / Mom / Jason" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem;" />
+            <div id="displayNameError" style="display:none; margin-top: 10px; color: #c0392b; font-size: 0.85rem;"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel" onclick="closeDisplayNameModal(false)">暂不分享</button>
+                <button type="button" class="btn btn-save" id="displayNameSaveBtn" onclick="saveDisplayNameFromModal()">保存并分享</button>
+            </div>
         </div>
     </div>
 
@@ -338,6 +405,12 @@
     const viewListBtn = document.getElementById('viewListBtn');
     const timelineEl = document.getElementById('timeline');
 
+    // Display Name Modal
+    const displayNameModal = document.getElementById('displayNameModal');
+    const displayNameInput = document.getElementById('displayNameInput');
+    const displayNameError = document.getElementById('displayNameError');
+    const displayNameSaveBtn = document.getElementById('displayNameSaveBtn');
+
     // ================= Globals =================
     const TOTAL_YEARS = 80;
     const WEEKS_PER_YEAR = 52;
@@ -348,6 +421,9 @@
     let lastClickedIndex = -1; 
     let currentLifePercent = 0; 
     let deleteConfirmTimer = null; // 用于删除按钮的防抖
+
+    // Profile (display name)
+    let currentDisplayName = '';
 
     const CLEAN_URL = window.location.origin + window.location.pathname;
 
@@ -383,6 +459,47 @@
     }
 
     // ================= Auth & Data Logic =================
+    async function loadUserProfile() {
+        if (!currentUser) {
+            currentDisplayName = '';
+            return;
+        }
+        try {
+            const { data, error, status } = await supabaseClient
+                .from('profiles')
+                .select(`display_name`)
+                .eq('id', currentUser.id)
+                .single();
+
+            if (error && status !== 406) throw error;
+
+            if (data) currentDisplayName = data.display_name;
+            else currentDisplayName = '';
+        } catch (error) {
+            console.error('Error loading user profile:', error.message);
+            currentDisplayName = '';
+        }
+    }
+
+    async function updateUserProfile(displayName) {
+        if (!currentUser) return false;
+        try {
+            const { error } = await supabaseClient.from('profiles').upsert({
+                id: currentUser.id,
+                display_name: displayName,
+                updated_at: new Date().toISOString(),
+            }, { onConflict: 'id' });
+
+            if (error) throw error;
+            currentDisplayName = displayName;
+            return true;
+        } catch (error) {
+            console.error('Error updating profile:', error.message);
+            alert('Could not save your name. Please try again.');
+            return false;
+        }
+    }
+
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') window.history.replaceState({}, document.title, CLEAN_URL);
         if (session) {
@@ -398,6 +515,7 @@
 
     async function syncAndLoadData() {
         try {
+            await loadUserProfile();
             let localData = safeJSONParse('lifeGridMilestones');
             for (let key in localData) {
                 if (typeof localData[key] === 'string') localData[key] = { content: localData[key], image_url: null };
@@ -550,7 +668,29 @@
             let imgHtml = item.imageUrl ? `<div class="timeline-img-box"><img src="${item.imageUrl}" loading="lazy"></div>` : '';
             let contentHtml = item.note ? `<div class="timeline-content">${escapeHtml(item.note)}</div>` : '';
 
-            card.innerHTML = `<div class="timeline-meta"><span class="meta-date">${dateStr}</span><span class="meta-age">Age ${age}</span></div>${imgHtml}${contentHtml}`;
+            const safeNote = item.note ? escapeHtml(item.note) : '';
+            const safeImg = item.imageUrl ? item.imageUrl : '';
+
+            card.innerHTML = `
+                <button type="button" class="timeline-share-btn" title="Share" aria-label="Share">
+                    <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
+                </button>
+                <div class="timeline-meta"><span class="meta-date">${dateStr}</span><span class="meta-age">Age ${age}</span></div>
+                ${imgHtml}
+                ${contentHtml}
+            `;
+
+            const shareBtn = card.querySelector('.timeline-share-btn');
+            shareBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                generatePolaroidShareCard({
+                    dateStrISO: formatDateISO(date),
+                    age,
+                    note: safeNote,
+                    imageUrl: safeImg,
+                });
+            });
+
             frag.appendChild(card);
         });
         timelineEl.appendChild(frag);
@@ -710,6 +850,149 @@
         document.querySelector('.card-date-text').textContent = new Date().toLocaleDateString();
 
         html2canvas(document.getElementById('share-card'), { scale: 2, backgroundColor: null }).then(canvas => {
+            const imgContainer = document.getElementById('imgContainer');
+            imgContainer.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = canvas.toDataURL('image/png');
+            img.id = 'shareResultImg';
+            imgContainer.appendChild(img);
+            document.getElementById('shareResultModal').classList.add('active');
+        });
+    }
+
+    function formatDateISO(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}.${m}.${day}`;
+    }
+
+    let _displayNameResolver = null;
+
+    function openDisplayNameModal(isEditOnly = false) {
+        if (!displayNameModal) return;
+        displayNameError.style.display = 'none';
+        displayNameError.textContent = '';
+
+        // Prefill for edit convenience
+        displayNameInput.value = (currentDisplayName || '').trim();
+
+        displayNameSaveBtn.disabled = false;
+        displayNameSaveBtn.textContent = isEditOnly ? '保存' : '保存并分享';
+        displayNameModal.dataset.mode = isEditOnly ? 'edit' : 'share';
+        displayNameModal.classList.add('active');
+        setTimeout(() => {
+            displayNameInput.focus();
+            displayNameInput.select();
+        }, 80);
+    }
+
+    function closeDisplayNameModal(result) {
+        if (!displayNameModal) return;
+        displayNameModal.classList.remove('active');
+        if (_displayNameResolver) {
+            _displayNameResolver(!!result);
+            _displayNameResolver = null;
+        }
+    }
+
+    async function saveDisplayNameFromModal() {
+        const name = (displayNameInput.value || '').trim();
+        if (!name) {
+            displayNameError.textContent = '署名不能为空';
+            displayNameError.style.display = 'block';
+            return;
+        }
+
+        const mode = displayNameModal?.dataset?.mode || 'share';
+
+        displayNameSaveBtn.disabled = true;
+        displayNameSaveBtn.textContent = '保存中...';
+
+        const ok = await updateUserProfile(name);
+        if (ok) {
+            closeDisplayNameModal(true);
+        } else {
+            displayNameSaveBtn.disabled = false;
+            displayNameSaveBtn.textContent = mode === 'edit' ? '保存' : '保存并分享';
+        }
+    }
+
+    if (displayNameModal) {
+        displayNameModal.addEventListener('click', (e) => {
+            if (e.target === displayNameModal) closeDisplayNameModal(false);
+        });
+    }
+
+    if (displayNameInput) {
+        displayNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveDisplayNameFromModal();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                closeDisplayNameModal(false);
+            }
+        });
+    }
+
+    async function ensureDisplayNameBeforeShare() {
+        if (!currentUser) {
+            alert('请先登录后再分享（需要绑定你的署名）。');
+            return false;
+        }
+        if (currentDisplayName && currentDisplayName.trim()) return true;
+
+        openDisplayNameModal(false);
+        return await new Promise((resolve) => {
+            _displayNameResolver = resolve;
+        });
+    }
+
+    async function generatePolaroidShareCard({ dateStrISO, age, note, imageUrl }) {
+        const ok = await ensureDisplayNameBeforeShare();
+        if (!ok) return;
+
+        const container = document.getElementById('share-card-container');
+
+        // Remove any old polaroid cards to avoid capturing stale content
+        container.querySelectorAll('.polaroid-card').forEach(n => n.remove());
+
+        const card = document.createElement('div');
+        card.className = 'polaroid-card';
+        card.id = 'polaroid-share-card';
+
+        const hasImg = !!imageUrl;
+        const safeNote = (note || '').trim();
+
+        card.innerHTML = `
+            <div class="polaroid-photo">
+                ${hasImg ? `<img id="polaroidImg" src="${imageUrl}" crossOrigin="anonymous" />` : `<div class="polaroid-noimg">No photo</div>`}
+            </div>
+            <div class="polaroid-meta">
+                <div class="polaroid-meta-top">
+                    <div class="polaroid-date">${dateStrISO}</div>
+                    <div class="polaroid-age">Age ${age}</div>
+                </div>
+                <div class="polaroid-note">${safeNote || ''}</div>
+                <div class="polaroid-watermark">Life Grid - Recorded by ${escapeHtml(currentDisplayName || '')}</div>
+            </div>
+        `;
+
+        container.appendChild(card);
+
+        // Ensure image is loaded before capture
+        if (hasImg) {
+            await new Promise((resolve) => {
+                const img = card.querySelector('#polaroidImg');
+                if (!img) return resolve();
+                if (img.complete) return resolve();
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+            });
+        }
+
+        html2canvas(card, { scale: 2, backgroundColor: '#f7f6f2', useCORS: true }).then(canvas => {
             const imgContainer = document.getElementById('imgContainer');
             imgContainer.innerHTML = '';
             const img = document.createElement('img');
