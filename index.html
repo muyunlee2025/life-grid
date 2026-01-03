@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Life Grid (Final Version)</title>
+    <title>Life Grid (v2.2.0 Final)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -17,32 +17,10 @@
             --text-muted: #7f8c8d;
         }
 
-        /* --- 核心修复 1: 禁止系统默认触摸行为 (解决白色横条/光标) --- */
-        * { 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent; 
-            outline: none; 
-            -webkit-user-select: none; /* Chrome/Safari */
-            -moz-user-select: none;    /* Firefox */
-            -ms-user-select: none;     /* IE/Edge */
-            user-select: none;         /* 标准 */
-            -webkit-touch-callout: none; /* 禁止iOS长按菜单 */
-        }
-        
-        /* 允许输入框正常输入 */
-        input, textarea { 
-            -webkit-user-select: auto;
-            user-select: auto; 
-        }
-
-        /* 针对 Grid 区域进行核弹级禁止，防止误触 */
-        .grid, .cell {
-            -webkit-user-select: none !important;
-            -moz-user-select: none !important;
-            user-select: none !important;
-            -webkit-touch-callout: none !important;
-            caret-color: transparent !important;
-        }
+        /* 基础重置 */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; -webkit-user-select: none; -moz-user-select: none; user-select: none; -webkit-touch-callout: none; }
+        input, textarea { -webkit-user-select: auto; user-select: auto; }
+        .grid, .cell { caret-color: transparent !important; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -58,21 +36,17 @@
         .sidebar { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 300px; position: relative; }
         .grid-container { flex: 1.5; height: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
         
+        /* Grid 样式 */
         .grid { display: grid; grid-template-columns: repeat(52, 1fr); height: 100%; aspect-ratio: 52 / 80; gap: 2px; width: 100%; }
         .cell { background-color: var(--empty-color); border-radius: 0.5px; width: 100%; height: 100%; cursor: pointer; transition: transform 0.1s; }
-        
         .cell.past { background-color: var(--ink-color); }
         .cell.current { background-color: var(--accent-color); box-shadow: 0 0 8px var(--accent-color); z-index: 2; }
         .cell.milestone { background-color: var(--milestone-color) !important; z-index: 1; }
         .cell.birth { background-color: var(--birth-color) !important; z-index: 3; }
-        .cell.selected {
-            z-index: 10;
-            outline: 2px solid #fff; /* 高亮边框，但不改变尺寸 */
-            box-shadow: 0 0 4px 2px rgba(255,255,255,0.8); /* 轻微发光 */
-        } /* 手机端选中态 */
-
+        .cell.selected { z-index: 10; outline: 2px solid #fff; box-shadow: 0 0 4px 2px rgba(255,255,255,0.8); }
         .cell:hover { transform: scale(1.8); z-index: 10; background-color: #dcdcdc; border-radius: 2px; }
         
+        /* 侧边栏样式 */
         h1 { font-size: 2rem; font-weight: 400; letter-spacing: 1px; margin-bottom: 30px; text-transform: uppercase; }
         .soul-text { font-size: 1rem; line-height: 2; color: #666; margin-bottom: 40px; border-left: 3px solid var(--accent-color); padding-left: 20px; }
         .soul-text strong.red { color: var(--accent-color); font-weight: 600; }
@@ -86,68 +60,35 @@
         .hover-info.blue-text { color: var(--milestone-color); }
         .hover-info.gold-text { color: var(--birth-color); }
 
-        /* Auth Styles */
+        /* Login UI */
         .auth-section { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; opacity: 0.8; transition: opacity 0.3s; }
         .auth-section:hover { opacity: 1; }
         .auth-input { padding: 8px; background: transparent; border: 1px solid #ccc; color: var(--ink-color); width: 60%; font-size: 0.85rem; border-radius: 2px; }
         .auth-btn { background: transparent; color: #999; border: 1px solid #ccc; padding: 8px 12px; cursor: pointer; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; border-radius: 2px; }
         .logout-btn { background: transparent; border: 1px solid #ccc; color: #999; padding: 4px 10px; cursor: pointer; font-size: 0.7rem; margin-top: 5px; }
 
-        /* 分享按钮样式 */
+        /* Share Button */
         .share-btn-container { margin-top: 20px; }
         .share-btn {
-            background-color: var(--ink-color); color: #fff; border: none;
-            padding: 10px 20px; border-radius: 4px; font-size: 0.9rem; cursor: pointer;
+            background-color: var(--ink-color); color: #fff; border: none; padding: 10px 20px; border-radius: 4px; font-size: 0.9rem; cursor: pointer;
             display: flex; align-items: center; gap: 8px; transition: background 0.3s;
         }
         .share-btn:hover { background-color: #34495e; }
         .share-icon { width: 16px; height: 16px; fill: currentColor; }
 
-        /* 隐藏的分享卡片模板 */
+        /* Hidden Share Card */
         #share-card-container { position: absolute; top: -9999px; left: -9999px; }
         .share-card {
-            width: 375px; height: 550px; 
-            background: linear-gradient(135deg, #1a1a1a, #2c3e50);
-            color: #fff; padding: 40px 30px;
-            display: flex; flex-direction: column; justify-content: space-between;
-            font-family: sans-serif;
-            position: relative;
-            overflow: hidden;
+            width: 375px; height: 550px; background: linear-gradient(135deg, #1a1a1a, #2c3e50);
+            color: #fff; padding: 40px 30px; display: flex; flex-direction: column; justify-content: space-between;
+            font-family: sans-serif; position: relative; overflow: hidden;
         }
-        .share-card::before {
-            content: ''; position: absolute; top: -50px; right: -50px;
-            width: 200px; height: 200px; background: rgba(255,255,255,0.05);
-            border-radius: 50%;
-        }
+        .share-card::before { content: ''; position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.05); border-radius: 50%; }
         .card-header { opacity: 0.8; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; display: flex; justify-content: space-between; }
         .card-main { text-align: center; margin-top: 20px; }
-        
-        /* --- 核心修复 2: 数字和百分号物理隔离 (解决 html2canvas 重叠) --- */
-        .card-percent-container {
-            text-align: center;
-            white-space: nowrap; /* 强制不换行 */
-            margin-bottom: 10px;
-        }
-        .card-percent-num {
-            display: inline-block; /* 块级显示 */
-            font-size: 96px;
-            font-weight: 700;
-            color: var(--accent-color);
-            text-shadow: 0 0 20px rgba(192, 57, 43, 0.3);
-            line-height: 1;
-        }
-        .card-percent-unit {
-            display: inline-block;
-            font-size: 40px;
-            font-weight: 700;
-            color: var(--accent-color);
-            opacity: 0.8;
-            margin-left: 15px; /* 【关键】物理边距，强制推开 */
-            vertical-align: baseline;
-            position: relative;
-            top: -5px;
-        }
-
+        .card-percent-container { text-align: center; white-space: nowrap; margin-bottom: 10px; }
+        .card-percent-num { display: inline-block; font-size: 96px; font-weight: 700; color: var(--accent-color); text-shadow: 0 0 20px rgba(192, 57, 43, 0.3); line-height: 1; }
+        .card-percent-unit { display: inline-block; font-size: 40px; font-weight: 700; color: var(--accent-color); opacity: 0.8; margin-left: 15px; vertical-align: baseline; position: relative; top: -5px; }
         .card-label { font-size: 18px; margin-top: 10px; opacity: 0.9; letter-spacing: 1px; }
         .card-progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-top: 30px; overflow: hidden; }
         .card-progress-fill { height: 100%; background: var(--accent-color); }
@@ -155,18 +96,16 @@
         .card-quote { font-style: italic; font-size: 15px; line-height: 1.6; opacity: 0.8; margin-bottom: 20px; border-left: 2px solid var(--accent-color); padding-left: 15px; }
         .card-author { font-size: 12px; opacity: 0.5; text-align: right; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
 
-        /* 模态框通用样式 */
+        /* Modal */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
-            z-index: 2000; display: none; justify-content: center; align-items: center;
-            opacity: 0; transition: opacity 0.3s ease;
+            z-index: 2000; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease;
         }
         .modal-overlay.active { display: flex; opacity: 1; }
         .modal-card {
             background: var(--bg-color); width: 85%; max-width: 400px; padding: 25px;
-            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transform: scale(0.9); transition: transform 0.3s ease;
+            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transform: scale(0.9); transition: transform 0.3s ease;
         }
         .modal-overlay.active .modal-card { transform: scale(1); }
         .modal-title { font-size: 0.9rem; text-transform: uppercase; color: #999; margin-bottom: 15px; font-weight: 600; }
@@ -177,21 +116,15 @@
         .btn-save { background: var(--ink-color); color: #fff; }
         .btn-delete { color: var(--accent-color); background: transparent; margin-right: auto; }
 
-        /* 分享结果弹窗 */
+        /* Share Result */
         #shareResultContent { text-align: center; background: transparent; box-shadow: none; padding: 0; }
-        #shareResultImg { max-width: 100%; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
-        /* --- 核心修复 3: 恢复分享图片的長按保存功能 --- */
-        #shareResultImg {
-            -webkit-user-select: auto !important;
-            user-select: auto !important;
-            -webkit-touch-callout: default !important;
-        }
+        #shareResultImg { max-width: 100%; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); -webkit-user-select: auto !important; user-select: auto !important; -webkit-touch-callout: default !important; }
         .share-tip { color: #fff; margin-top: 15px; font-size: 0.9rem; opacity: 0.8; }
         .close-share-btn { margin-top: 20px; padding: 8px 25px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: #fff; border-radius: 20px; cursor: pointer; }
 
+        /* Responsive */
         .mobile-only-auth { display: none; }
         .mobile-visible { display: none; }
-
         @media (max-width: 768px) {
             body { display: block; height: auto; min-height: 100vh; overflow-y: scroll; padding: 40px 25px; }
             .layout { flex-direction: column; width: 100%; height: auto; max-width: 500px; margin: 0 auto; gap: 40px; padding-bottom: 80px; }
@@ -208,128 +141,57 @@
             .share-btn-container { display: flex; justify-content: center; margin-bottom: 20px; }
         }
 
-        /* --- 新增：图片上传 UI --- */
-.modal-image-section {
-    margin-bottom: 20px;
-}
+        /* Upload UI */
+        .modal-image-section { margin-bottom: 20px; }
+        .hidden { display: none !important; }
+        .upload-trigger-btn { width: 100%; padding: 10px; border: 2px dashed #ccc; background: transparent; color: #999; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; transition: all 0.3s; }
+        .upload-trigger-btn:hover { border-color: var(--ink-color); color: var(--ink-color); background: rgba(0,0,0,0.02); }
+        .image-preview-box { position: relative; width: 100%; max-height: 200px; border-radius: 6px; overflow: hidden; background: #f0f0f0; text-align: center; border: 1px solid #ddd; }
+        .image-preview-box img { max-width: 100%; max-height: 200px; object-fit: contain; display: block; margin: 0 auto; }
+        .remove-img-btn { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+        .remove-img-btn:hover { background: red; }
 
-.hidden { display: none !important; }
+        /* Sidebar Projection */
+        .sidebar-image-box { margin-top: 20px; width: 100%; height: 0; padding-bottom: 0; position: relative; opacity: 0; transition: opacity 0.3s ease; overflow: hidden; border-radius: 8px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .sidebar-image-box.active { height: auto; min-height: 150px; opacity: 1; border: 1px solid #eee; }
+        .sidebar-image-box img { width: 100%; height: auto; display: block; object-fit: cover; }
 
-/* 上传按钮 (虚线框风格) */
-.upload-trigger-btn {
-    width: 100%;
-    padding: 10px;
-    border: 2px dashed #ccc;
-    background: transparent;
-    color: #999;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-size: 0.9rem;
-    transition: all 0.3s;
-}
-
-.upload-trigger-btn:hover {
-    border-color: var(--ink-color);
-    color: var(--ink-color);
-    background: rgba(0,0,0,0.02);
-}
-
-/* 图片预览容器 */
-.image-preview-box {
-    position: relative;
-    width: 100%;
-    max-height: 200px; /* 限制高度，防止弹窗太长 */
-    border-radius: 6px;
-    overflow: hidden;
-    background: #f0f0f0;
-    text-align: center;
-    border: 1px solid #ddd;
-}
-
-.image-preview-box img {
-    max-width: 100%;
-    max-height: 200px;
-    object-fit: contain; /* 保持比例 */
-    display: block;
-    margin: 0 auto;
-}
-
-/* 删除图片的小叉号 */
-.remove-img-btn {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: rgba(0,0,0,0.6);
-    color: #fff;
-    border: none;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 16px;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.remove-img-btn:hover {
-    background: red;
-}
-
-/* 侧边栏图片投影 */
-.sidebar-image-box {
-    margin-top: 20px;
-    width: 100%;
-    height: 0; /* 平时高度为0，不占地 */
-    padding-bottom: 0; /* 保持宽高比技巧 */
-    position: relative;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    overflow: hidden;
-    border-radius: 8px;
-    background: #fff;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-/* 激活状态 */
-.sidebar-image-box.active {
-    height: auto; /* 撑开高度 */
-    min-height: 150px;
-    opacity: 1;
-    border: 1px solid #eee;
-}
-
-.sidebar-image-box img {
-    width: 100%;
-    height: auto;
-    display: block;
-    object-fit: cover;
-}
+        /* Timeline & View Toggle */
+        .header-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .header-group h1 { margin-bottom: 0; }
+        .view-toggle { display: flex; background: #e0e0e0; padding: 3px; border-radius: 8px; }
+        .toggle-btn { background: transparent; border: none; padding: 6px 10px; border-radius: 6px; color: #888; cursor: pointer; display: flex; align-items: center; }
+        .toggle-btn.active { background: #fff; color: var(--ink-color); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        .timeline { width: 100%; height: 100%; overflow-y: auto; padding: 0 10px 50px 10px; scrollbar-width: none; -ms-overflow-style: none; }
+        .timeline::-webkit-scrollbar { display: none; }
+        
+        .timeline-card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); transition: all 0.2s ease; cursor: pointer; border: 1px solid transparent; position: relative; }
+        .timeline-card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.1); }
+        .timeline-meta { display: flex; justify-content: space-between; font-size: 0.75rem; color: #999; margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px dashed #eee; padding-bottom: 8px; }
+        .meta-age { color: var(--accent-color); font-weight: 600; }
+        .timeline-img-box { width: 100%; margin-bottom: 15px; border-radius: 8px; overflow: hidden; background: #f9f9f9; }
+        .timeline-img-box img { width: 100%; height: auto; display: block; object-fit: cover; }
+        .timeline-content { font-size: 1rem; line-height: 1.6; color: var(--ink-color); white-space: pre-wrap; font-family: serif; }
+        .empty-timeline { text-align: center; color: #bbb; margin-top: 50px; font-size: 0.9rem; font-style: italic; }
+        
+        .timeline-year-header { font-size: 1.5rem; font-weight: 800; color: var(--empty-color); text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; margin: 30px 0 15px 0; padding-left: 10px; border-left: 4px solid var(--accent-color); line-height: 1; letter-spacing: -1px; opacity: 0.6; }
+        .timeline-year-header:first-child { margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="layout">
         <aside class="sidebar">
-            <h1>LIFE WEEKS</h1>
-            <div class="soul-text">
-                <span class="mobile-hidden">
-                    80 Years. 4,160 Weeks.<br>
-                    <strong class="black">Past</strong> is memory.<br>
-                    <strong class="black">Future</strong> is infinite possibility.<br>
-                    That flashing <strong class="red">Red</strong> is Here and Now.
-                    <br><br>
-                    Make it count.
-                </span>
-                <span class="mobile-visible">
-                    80 Years. 4,160 Weeks.<br>
-                    That flashing <strong class="red">Red</strong> is Here and Now.<br>
-                    Make it count.
-                </span>
+            <div class="header-group">
+                <h1>LIFE WEEKS</h1>
+                <div class="view-toggle">
+                    <button id="viewGridBtn" class="toggle-btn active" title="Grid View">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                    </button>
+                    <button id="viewListBtn" class="toggle-btn" title="Timeline View">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                    </button>
+                </div>
             </div>
             
             <div class="input-group">
@@ -359,13 +221,10 @@
                     <button onclick="handleLogout()" class="logout-btn">LOGOUT</button>
                 </div>
             </div>
-            <!-- <div class="stats" id="stats"></div> -->
 
-<div id="sidebarImageContainer" class="sidebar-image-box">
-    <img id="sidebarImage" src="" alt="">
-</div>
-
-<!-- <div class="hover-info" id="hoverInfo"></div> -->
+            <div id="sidebarImageContainer" class="sidebar-image-box">
+                <img id="sidebarImage" src="" alt="">
+            </div>
 
             <div class="hover-info" id="hoverInfo"></div>
             
@@ -376,6 +235,7 @@
         
         <main class="grid-container">
             <div id="grid" class="grid"></div>
+            <div id="timeline" class="timeline hidden"></div>
         </main>
         
         <div class="auth-section mobile-only-auth">
@@ -397,24 +257,16 @@
     <div class="modal-overlay" id="noteModal">
         <div class="modal-card">
             <div class="modal-title" id="modalTitle">Edit Milestone</div>
-            
             <textarea class="modal-textarea" id="modalInput" placeholder="What happened this week?"></textarea>
             
             <div class="modal-image-section">
-                <!-- <input type="file" id="imageInput" accept="image/*" hidden> -->
-                <input type="file" id="imageInput" accept="image/png, image/jpeg, image/jpg, image/webp" hidden>
-                
+                <input type="file" id="imageInput" accept="image/*" hidden>
                 <div id="imagePreviewContainer" class="image-preview-box hidden">
                     <img id="imagePreview" src="" alt="Memory">
                     <button id="removeImageBtn" class="remove-img-btn">×</button>
                 </div>
-        
                 <button id="uploadTriggerBtn" class="upload-trigger-btn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <polyline points="21 15 16 10 5 21"></polyline>
-                    </svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                     Add Photo
                 </button>
             </div>
@@ -425,15 +277,6 @@
                 <button class="btn btn-save" onclick="saveFromModal()">SAVE</button>
             </div>
         </div>
-        <!-- <div class="modal-card">
-            <div class="modal-title" id="modalTitle">Edit Milestone</div>
-            <textarea class="modal-textarea" id="modalInput" placeholder="What happened this week?"></textarea>
-            <div class="modal-actions">
-                <button class="btn btn-delete" onclick="deleteNote()">DELETE</button>
-                <button class="btn btn-cancel" onclick="closeModal()">CANCEL</button>
-                <button class="btn btn-save" onclick="saveFromModal()">SAVE</button>
-            </div>
-        </div> -->
     </div>
 
     <div class="modal-overlay" id="shareResultModal">
@@ -446,27 +289,15 @@
 
     <div id="share-card-container">
         <div id="share-card" class="share-card">
-            <div class="card-header">
-                <span>Life Grid</span>
-                <span class="card-date-text">2026.01.02</span>
-            </div>
+            <div class="card-header"><span>Life Grid</span><span class="card-date-text">2026.01.02</span></div>
             <div class="card-main">
-                <div class="card-percent-container">
-                    <span class="card-percent-num" id="cardPercentNum">0.0</span>
-                    <span class="card-percent-unit">%</span>
-                </div>
+                <div class="card-percent-container"><span class="card-percent-num" id="cardPercentNum">0.0</span><span class="card-percent-unit">%</span></div>
                 <div class="card-label">的人生进度条已加载</div>
-                <div class="card-progress-bar">
-                    <div class="card-progress-fill" id="cardProgressFill" style="width: 0%;"></div>
-                </div>
+                <div class="card-progress-bar"><div class="card-progress-fill" id="cardProgressFill" style="width: 0%;"></div></div>
             </div>
             <div class="card-footer">
-                <div class="card-quote">
-                    "种一棵树最好的时间是十年前，<br>其次是现在。"
-                </div>
-                <div class="card-author">
-                    Designed by 牧云 | Life Grid
-                </div>
+                <div class="card-quote">"种一棵树最好的时间是十年前，<br>其次是现在。"</div>
+                <div class="card-author">Designed by 牧云 | Life Grid</div>
             </div>
         </div>
     </div>
@@ -477,7 +308,7 @@
     const supabaseKey = 'sb_publishable_oK_9EuOCFExUSGw5xLu85w_w377FCp4';
     const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-    // ================= DOM 元素 =================
+    // ================= DOM =================
     const gridEl = document.getElementById('grid');
     const dateInput = document.getElementById('birthdate');
     const statsEl = document.getElementById('stats');
@@ -487,12 +318,17 @@
     const loginFormMobile = document.getElementById('login-form-mobile');
     const userInfoMobile = document.getElementById('user-info-mobile');
     
-    // 模态框元素
+    // Modal
     const modal = document.getElementById('noteModal');
     const modalTitle = document.getElementById('modalTitle');
     const modalInput = document.getElementById('modalInput');
+    
+    // Timeline
+    const viewGridBtn = document.getElementById('viewGridBtn');
+    const viewListBtn = document.getElementById('viewListBtn');
+    const timelineEl = document.getElementById('timeline');
 
-    // ================= 全局变量 =================
+    // ================= Globals =================
     const TOTAL_YEARS = 80;
     const WEEKS_PER_YEAR = 52;
     const TOTAL_WEEKS = TOTAL_YEARS * WEEKS_PER_YEAR;
@@ -500,15 +336,47 @@
     let milestones = {};       
     let currentUser = null;    
     let lastClickedIndex = -1; 
-    let currentLifePercent = 0; // 全局变量，用于分享
+    let currentLifePercent = 0; 
 
     const CLEAN_URL = window.location.origin + window.location.pathname;
 
+    // ================= Helpers =================
+    function escapeHtml(text) {
+        if (!text) return text;
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    // 【核心修复 Bug 3】安全解析 JSON (防白屏)
+    function safeJSONParse(key) {
+        try {
+            const item = localStorage.getItem(key);
+            return item ? JSON.parse(item) : {};
+        } catch (e) {
+            console.warn(`Data corrupted for ${key}, resetting.`, e);
+            localStorage.removeItem(key);
+            return {};
+        }
+    }
+
+    // 【核心修复 Bug 1】清理孤儿文件 (资源回收)
+    async function deleteOldFile(fullUrl) {
+        if (!fullUrl) return;
+        try {
+            // 解析出相对路径 (例如: user_id/filename)
+            const pathParts = fullUrl.split('/milestone-images/');
+            if (pathParts.length > 1) {
+                const relativePath = pathParts[1];
+                await supabaseClient.storage.from('milestone-images').remove([relativePath]);
+                console.log("Deleted orphan file:", relativePath);
+            }
+        } catch (e) {
+            console.error("Failed to delete old file:", e);
+        }
+    }
+
     // ================= Auth & Data Logic =================
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            window.history.replaceState({}, document.title, CLEAN_URL);
-        }
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') window.history.replaceState({}, document.title, CLEAN_URL);
         if (session) {
             currentUser = session.user;
             updateAuthUI(true);
@@ -522,61 +390,35 @@
 
     async function syncAndLoadData() {
         try {
-            // 1. 获取本地数据 (兼容旧格式：如果是字符串，转为对象)
-            let localRaw = localStorage.getItem('lifeGridMilestones');
-            let localData = localRaw ? JSON.parse(localRaw) : {};
+            let localData = safeJSONParse('lifeGridMilestones'); // 使用安全解析
             
-            // 数据清洗：把所有旧的 string 格式转为 { content: string } 对象
+            // Clean old data structure
             for (let key in localData) {
-                if (typeof localData[key] === 'string') {
-                    localData[key] = { content: localData[key], image_url: null };
-                }
+                if (typeof localData[key] === 'string') localData[key] = { content: localData[key], image_url: null };
             }
 
-            // 2. 获取云端数据 (新增 image_url 列)
-            const { data: cloudData, error } = await supabaseClient
-                .from('test_milestones')
-                .select('week_index, content, image_url');
-
+            const { data: cloudData, error } = await supabaseClient.from('test_milestones').select('week_index, content, image_url');
             if (error) throw error;
 
-            // 3. 建立云端索引
             const cloudMap = new Map();
-            cloudData.forEach(row => {
-                cloudMap.set(row.week_index, { 
-                    content: row.content, 
-                    image_url: row.image_url 
-                });
-            });
+            cloudData.forEach(row => cloudMap.set(row.week_index, { content: row.content, image_url: row.image_url }));
 
-            // 4. 差异比对与合并
             const updatesToUpload = [];
             for (const [key, localVal] of Object.entries(localData)) {
                 const weekIdx = parseInt(key);
-                // 如果云端没有，且本地有内容，则准备上传
                 if (!cloudMap.has(weekIdx) && (localVal.content || localVal.image_url)) {
-                    updatesToUpload.push({
-                        user_id: currentUser.id,
-                        week_index: weekIdx,
-                        content: localVal.content,
-                        image_url: localVal.image_url
-                    });
+                    updatesToUpload.push({ user_id: currentUser.id, week_index: weekIdx, content: localVal.content, image_url: localVal.image_url });
                 }
             }
 
-            // 5. 批量上传新数据
             if (updatesToUpload.length > 0) {
                 await supabaseClient.from('test_milestones').upsert(updatesToUpload, { onConflict: 'user_id, week_index' });
                 updatesToUpload.forEach(item => cloudMap.set(item.week_index, { content: item.content, image_url: item.image_url }));
             }
 
-            // 6. 最终合并回内存
             milestones = {};
-            for (const [weekIdx, data] of cloudMap.entries()) {
-                milestones[weekIdx] = data; // 现在这是个对象 {content, image_url}
-            }
+            for (const [weekIdx, data] of cloudMap.entries()) milestones[weekIdx] = data; 
 
-            // 7. 更新本地缓存
             localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
             renderGrid();
             
@@ -586,73 +428,27 @@
         }
     }
 
-    // async function syncAndLoadData() {
-    //     try {
-    //         const localRaw = localStorage.getItem('lifeGridMilestones');
-    //         const localData = localRaw ? JSON.parse(localRaw) : {};
-    //         const { data: cloudData, error } = await supabaseClient.from('test_milestones').select('week_index, content');
-    //         if (error) throw error;
-
-    //         const cloudMap = new Map();
-    //         cloudData.forEach(row => cloudMap.set(row.week_index, row.content));
-
-    //         const updatesToUpload = [];
-    //         for (const [key, content] of Object.entries(localData)) {
-    //             const weekIdx = parseInt(key);
-    //             if (!cloudMap.has(weekIdx) && content) {
-    //                 updatesToUpload.push({ user_id: currentUser.id, week_index: weekIdx, content: content });
-    //             }
-    //         }
-
-    //         if (updatesToUpload.length > 0) {
-    //             await supabaseClient.from('test_milestones').upsert(updatesToUpload, { onConflict: 'user_id, week_index' });
-    //                 updatesToUpload.forEach(item => cloudMap.set(item.week_index, item.content));
-    //         }
-
-    //         milestones = {};
-    //         for (const [weekIdx, content] of cloudMap.entries()) {
-    //             milestones[weekIdx] = content;
-    //         }
-    //         localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
-    //         renderGrid();
-    //     } catch (err) {
-    //         console.error("Sync Critical Error:", err);
-    //         loadLocalOnly();
-    //     }
-    // }
-
     function loadLocalOnly() {
-        const local = localStorage.getItem('lifeGridMilestones');
-        milestones = local ? JSON.parse(local) : {};
+        milestones = safeJSONParse('lifeGridMilestones');
         renderGrid();
     }
 
-        async function handleLogin(isMobile = false) {
+    async function handleLogin(isMobile = false) {
         const emailId = isMobile ? 'email-mobile' : 'email';
         const btnId = isMobile ? 'login-btn-mobile' : 'login-btn-desktop';
         const email = document.getElementById(emailId).value.trim();
         const loginBtn = document.getElementById(btnId);
         const originalText = loginBtn.textContent;
 
-        if (!email) {
-            loginBtn.textContent = '请输入邮箱';
-            setTimeout(() => { loginBtn.textContent = originalText; }, 2000);
-            return;
-        }
-        loginBtn.disabled = true;
-        loginBtn.textContent = '发送中...';
+        if (!email) { loginBtn.textContent = '请输入邮箱'; setTimeout(() => { loginBtn.textContent = originalText; }, 2000); return; }
+        loginBtn.disabled = true; loginBtn.textContent = '发送中...';
 
         try {
             const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: CLEAN_URL } });
             if (error) throw error;
-            alert('✨ 登录邮件已发送，请查收邮箱！');
-            loginBtn.textContent = '✅ 已发送';
-        } catch (error) {
-            console.error('Login error:', error.message);
-            loginBtn.textContent = '❌ 失败';
-        } finally {
-            setTimeout(() => { loginBtn.disabled = false; loginBtn.textContent = originalText; }, 2500);
-        }
+            alert('✨ 登录邮件已发送，请查收邮箱！'); loginBtn.textContent = '✅ 已发送';
+        } catch (error) { console.error('Login error:', error.message); loginBtn.textContent = '❌ 失败'; } 
+        finally { setTimeout(() => { loginBtn.disabled = false; loginBtn.textContent = originalText; }, 2500); }
     }
 
     async function handleLogout() {
@@ -663,49 +459,31 @@
     }
 
     async function saveMilestone(index, content, imageUrl = null) {
-        // 1. 内存更新
-        // 如果内容和图片都没了，就删除
-        if (!content && !imageUrl) {
-            delete milestones[index];
-        } else {
-            milestones[index] = { content, image_url: imageUrl };
-        }
+        if (!content && !imageUrl) delete milestones[index];
+        else milestones[index] = { content, image_url: imageUrl };
         
-        // 2. 本地持久化
         localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
         renderGrid();
 
-        // 3. 云端同步
         if (currentUser) {
             try {
                 if (!content && !imageUrl) {
-                    await supabaseClient.from('test_milestones').delete().eq('week_index', index);
+                    // 安全增强：删除时校验 user_id
+                    await supabaseClient.from('test_milestones')
+                        .delete()
+                        .eq('week_index', index)
+                        .eq('user_id', currentUser.id);
                 } else {
                     await supabaseClient.from('test_milestones').upsert({
-                        user_id: currentUser.id,
-                        week_index: index,
-                        content: content,
-                        image_url: imageUrl
+                        user_id: currentUser.id, week_index: index, content: content, image_url: imageUrl
                     }, { onConflict: 'user_id, week_index' });
                 }
-            } catch (e) {
-                console.error("Cloud save failed:", e);
-            }
+            } catch (e) { console.error("Cloud save failed:", e); }
         }
+        
+        // 同步刷新 Timeline
+        if (timelineEl && !timelineEl.classList.contains('hidden')) renderTimeline();
     }
-
-    // async function saveMilestone(index, content) {
-    //     if (!content) delete milestones[index]; 
-    //     else milestones[index] = content;
-    //     localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
-    //     renderGrid();
-    //     if (currentUser) {
-    //         try {
-    //             if (!content) await supabaseClient.from('test_milestones').delete().eq('week_index', index);
-    //             else await supabaseClient.from('test_milestones').upsert({ user_id: currentUser.id, week_index: index, content }, { onConflict: 'user_id, week_index' });
-    //         } catch (e) { console.error("Cloud save failed:", e); }
-    //     }
-    // }
 
     function updateAuthUI(isLoggedIn) {
         const displays = isLoggedIn ? ['none', 'block'] : ['block', 'none'];
@@ -713,12 +491,72 @@
         [userInfo, userInfoMobile].forEach(el => { if(el) el.style.display = displays[1]; });
     }
 
+    // ================= Timeline Logic =================
+    function switchView(viewName) {
+        if (viewName === 'grid') {
+            gridEl.classList.remove('hidden'); timelineEl.classList.add('hidden');
+            viewGridBtn.classList.add('active'); viewListBtn.classList.remove('active');
+        } else {
+            gridEl.classList.add('hidden'); timelineEl.classList.remove('hidden');
+            viewGridBtn.classList.remove('active'); viewListBtn.classList.add('active');
+            renderTimeline(); 
+        }
+    }
+    if(viewGridBtn) viewGridBtn.addEventListener('click', () => switchView('grid'));
+    if(viewListBtn) viewListBtn.addEventListener('click', () => switchView('list'));
+
+    function renderTimeline() {
+        timelineEl.innerHTML = '';
+        const birthdate = new Date(dateInput.value);
+        
+        const timelineData = Object.keys(milestones).map(key => {
+            const i = parseInt(key);
+            let note = null, imageUrl = null;
+            const raw = milestones[i];
+            if (typeof raw === 'string') note = raw;
+            else { note = raw.content; imageUrl = raw.image_url; }
+            return { index: i, note, imageUrl, raw };
+        }).filter(item => item.note || item.imageUrl).sort((a, b) => b.index - a.index); 
+
+        if (timelineData.length === 0) { timelineEl.innerHTML = '<div class="empty-timeline">还没有记录。<br>去格子里点亮你的第一个瞬间吧。</div>'; return; }
+
+        const frag = document.createDocumentFragment();
+        let lastYear = null;
+
+        timelineData.forEach(item => {
+            const age = Math.floor(item.index / WEEKS_PER_YEAR);
+            const date = new Date(birthdate);
+            date.setDate(date.getDate() + item.index * 7);
+            const dateStr = date.toLocaleDateString();
+            const currentYear = date.getFullYear();
+
+            if (currentYear !== lastYear) {
+                const yearHeader = document.createElement('div');
+                yearHeader.className = 'timeline-year-header';
+                yearHeader.textContent = currentYear;
+                frag.appendChild(yearHeader);
+                lastYear = currentYear;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'timeline-card';
+            card.onclick = () => openModal(item.index, item.raw, age);
+
+            let imgHtml = item.imageUrl ? `<div class="timeline-img-box"><img src="${item.imageUrl}" loading="lazy"></div>` : '';
+            let contentHtml = item.note ? `<div class="timeline-content">${escapeHtml(item.note)}</div>` : '';
+
+            card.innerHTML = `<div class="timeline-meta"><span class="meta-date">${dateStr}</span><span class="meta-age">Age ${age}</span></div>${imgHtml}${contentHtml}`;
+            frag.appendChild(card);
+        });
+        timelineEl.appendChild(frag);
+    }
+
     // ================= Modal & Image Logic =================
     let currentEditingIndex = -1; 
-    let currentTempImageFile = null; // 暂存新选择的文件
-    let currentExistingImageUrl = null; // 暂存已有的云端URL
+    let currentTempImageFile = null; 
+    let currentExistingImageUrl = null; // 当前界面上认为存在的图
+    let originalCloudUrl = null;        // 【核心修复 Bug 1】记住打开时的图
 
-    // DOM 元素引用 (确保你的HTML里id对得上)
     const imageInput = document.getElementById('imageInput');
     const imagePreviewContainer = document.getElementById('imagePreviewContainer');
     const imagePreview = document.getElementById('imagePreview');
@@ -729,7 +567,6 @@
         currentEditingIndex = index;
         currentTempImageFile = null;
         
-        // 兼容处理：data可能是字符串(旧数据)或对象(新数据)
         let content = '';
         let imageUrl = null;
         
@@ -741,112 +578,88 @@
             }
         }
         currentExistingImageUrl = imageUrl;
+        originalCloudUrl = imageUrl; // 记录原始状态，用于判断是否删除旧图
 
-        // UI 初始化
         modalInput.value = content;
         if (index === 0) modalTitle.textContent = "👶 The Beginning";
         else if (data) modalTitle.textContent = `📝 Edit Memory (Age ${age})`;
         else modalTitle.textContent = `✨ New Memory (Age ${age})`;
 
-        // 图片预览状态重置
-        if (imageUrl) {
-            showPreview(imageUrl);
-        } else {
-            resetPreview();
-        }
-
+        if (imageUrl) showPreview(imageUrl); else resetPreview();
         modal.classList.add('active');
-        // 如果没图，自动聚焦输入框；有图就不聚焦，防止手机端键盘弹起挡住图
         if(!imageUrl) setTimeout(() => modalInput.focus(), 100); 
     }
 
-    function closeModal() {
-        modal.classList.remove('active');
-        modalInput.blur();
-    }
-
-    // 触发文件选择
+    function closeModal() { modal.classList.remove('active'); modalInput.blur(); }
     uploadTriggerBtn.addEventListener('click', () => imageInput.click());
-
-    // 监听文件选择
+    
     imageInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
+        // 【核心修复 Bug 5】MIME 类型校验
+        if (!file.type.match(/^image\/(jpeg|png|gif|webp)$/)) {
+            alert("Only JPG, PNG, GIF, WEBP allowed.");
+            return;
+        }
+
         currentTempImageFile = file;
-        const localUrl = URL.createObjectURL(file); // 创建本地预览流
+        const localUrl = URL.createObjectURL(file); 
         showPreview(localUrl);
     });
 
-    // 显示预览
     function showPreview(url) {
         imagePreview.src = url;
         imagePreviewContainer.classList.remove('hidden');
         uploadTriggerBtn.classList.add('hidden');
     }
 
-    // 重置/删除预览
     function resetPreview() {
         imagePreview.src = '';
         imagePreviewContainer.classList.add('hidden');
         uploadTriggerBtn.classList.remove('hidden');
-        imageInput.value = ''; // 清空 input
+        imageInput.value = ''; 
         currentTempImageFile = null;
-        currentExistingImageUrl = null;
+        currentExistingImageUrl = null; // 显式置空，防止“复活”
     }
 
-    // 点击小叉号删除图片
-    removeImageBtn.addEventListener('click', (e) => {
-        e.stopPropagation(); // 防止触发其他点击
-        resetPreview();
-    });
+    removeImageBtn.addEventListener('click', (e) => { e.stopPropagation(); resetPreview(); });
 
-    // 点击 SAVE 按钮
     async function saveFromModal() {
         if (currentEditingIndex === -1) return;
-        
         const content = modalInput.value.trim();
         const saveBtn = document.querySelector('.btn-save');
         const originalText = saveBtn.textContent;
 
-        // 1. 如果有新文件，先上传
         let finalImageUrl = currentExistingImageUrl;
 
         if (currentTempImageFile && currentUser) {
-            saveBtn.textContent = "Uploading...";
-            saveBtn.disabled = true;
-
+            saveBtn.textContent = "Uploading..."; saveBtn.disabled = true;
             try {
                 const fileExt = currentTempImageFile.name.split('.').pop();
                 const fileName = `${currentUser.id}/${currentEditingIndex}_${Date.now()}.${fileExt}`;
-                
-                const { data, error } = await supabaseClient.storage
-                    .from('milestone-images')
-                    .upload(fileName, currentTempImageFile);
-
+                const { data, error } = await supabaseClient.storage.from('milestone-images').upload(fileName, currentTempImageFile);
                 if (error) throw error;
-
-                // 获取公开链接
-                const { data: { publicUrl } } = supabaseClient.storage
-                    .from('milestone-images')
-                    .getPublicUrl(fileName);
-                
+                const { data: { publicUrl } } = supabaseClient.storage.from('milestone-images').getPublicUrl(fileName);
                 finalImageUrl = publicUrl;
-
             } catch (err) {
                 console.error("Upload failed:", err);
                 alert("Upload failed. Text saved, image skipped.");
                 finalImageUrl = null;
             } finally {
-                saveBtn.textContent = originalText;
-                saveBtn.disabled = false;
+                saveBtn.textContent = originalText; saveBtn.disabled = false;
             }
         } else if (currentTempImageFile && !currentUser) {
             alert("Please Login to upload images! (Saving text only)");
             finalImageUrl = null;
         }
 
-        // 2. 保存所有数据
+        // 【核心修复 Bug 1 & 2】清理旧图逻辑
+        // 如果原图存在，且（最终图是新的 OR 最终图没了），说明原图废弃，删之
+        if (originalCloudUrl && originalCloudUrl !== finalImageUrl) {
+            deleteOldFile(originalCloudUrl); // 异步删除，不阻塞体验
+        }
+
         await saveMilestone(currentEditingIndex, content, finalImageUrl);
         closeModal();
     }
@@ -854,62 +667,35 @@
     function deleteNote() {
         if (currentEditingIndex === -1) return;
         if (confirm("Clear this memory completely?")) {
+            // 删除笔记时，如果有图，也顺便清理云端资源
+            if (originalCloudUrl) deleteOldFile(originalCloudUrl);
             saveMilestone(currentEditingIndex, null, null);
             closeModal();
         }
     }
-    
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-    // 从这里开始替换
-    // ================= Modal Logic =================
-    // let currentEditingIndex = -1; 
-    // function openModal(index, content, age) {
-    //     currentEditingIndex = index;
-    //     modalInput.value = content || '';
-    //     if (index === 0) modalTitle.textContent = "👶 The Beginning";
-    //     else if (content) modalTitle.textContent = `📝 Edit Note (Age ${age})`;
-    //     else modalTitle.textContent = `✨ New Memory (Age ${age})`;
-    //     modal.classList.add('active');
-    //     setTimeout(() => modalInput.focus(), 100); 
-    // }
-    // function closeModal() { modal.classList.remove('active'); modalInput.blur(); }
-    // function saveFromModal() { if (currentEditingIndex === -1) return; saveMilestone(currentEditingIndex, modalInput.value.trim()); closeModal(); }
-    // function deleteNote() { if (currentEditingIndex === -1) return; if (confirm("Clear this memory?")) { saveMilestone(currentEditingIndex, null); closeModal(); } }
-    // modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-
-    // ================= 分享生成逻辑 =================
+    // ================= Share =================
     function generateShareCard() {
-        // 1. 填充数据 (使用分离后的 ID)
         document.getElementById('cardPercentNum').textContent = currentLifePercent;
-        // 单位是静态的，不需要动
         document.getElementById('cardProgressFill').style.width = currentLifePercent + '%';
         document.querySelector('.card-date-text').textContent = new Date().toLocaleDateString();
 
-        // 2. 截图
-        const cardEl = document.getElementById('share-card');
-        html2canvas(cardEl, { 
-            scale: 2, 
-            backgroundColor: null 
-        }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
+        html2canvas(document.getElementById('share-card'), { scale: 2, backgroundColor: null }).then(canvas => {
             const imgContainer = document.getElementById('imgContainer');
             imgContainer.innerHTML = '';
             const img = document.createElement('img');
-            img.src = imgData;
+            img.src = canvas.toDataURL('image/png');
             img.id = 'shareResultImg';
             imgContainer.appendChild(img);
-            
-            // 3. 显示结果弹窗
             document.getElementById('shareResultModal').classList.add('active');
         });
     }
 
     // ================= Grid Renderer =================
     function renderGrid() {
-        // 在 renderGrid 函数最开始，获取新元素
-    const sidebarImgBox = document.getElementById('sidebarImageContainer');
-    const sidebarImg = document.getElementById('sidebarImage');
+        const sidebarImgBox = document.getElementById('sidebarImageContainer');
+        const sidebarImg = document.getElementById('sidebarImage');
         gridEl.innerHTML = '';
         const birthdate = new Date(dateInput.value);
         const today = new Date();
@@ -930,17 +716,11 @@
             const age = Math.floor(i / WEEKS_PER_YEAR);
             const year = birthdate.getFullYear() + age;
             
-            // 数据解构：兼容旧字符串和新对象
-            let note = null;
-            let hasImage = false;
+            let note = null, hasImage = false;
             const rawData = milestones[i];
-            
             if (rawData) {
                 if (typeof rawData === 'string') note = rawData;
-                else {
-                    note = rawData.content;
-                    hasImage = !!rawData.image_url;
-                }
+                else { note = rawData.content; hasImage = !!rawData.image_url; }
             }
             
             const isPast = i < diffWeeks;
@@ -949,70 +729,36 @@
 
             if (isPast) div.classList.add('past');
             else if (isCurrent) div.classList.add('current');
-            
             if (isBirth) div.classList.add('birth');
-            // 如果有笔记或者有图片，都算 milestone
             else if (note || hasImage) div.classList.add('milestone');
-
-            // 【新增】如果有图片，给格子加一个特殊的视觉标记（比如更深的颜色，或者border）
-            if (hasImage) {
-                div.style.border = "1px solid var(--ink-color)"; 
-            }
+            
+            // 【核心修复 Bug 4】视觉抖动修复：用 box-shadow 代替 border
+            if (hasImage) div.style.boxShadow = "inset 0 0 0 1px var(--ink-color)"; 
 
             const showInfo = () => {
                 hoverInfoEl.className = 'hover-info';
                 let infoText = '';
                 
-                // --- 【新增】图片投影逻辑 ---
                 if (hasImage && rawData.image_url) {
-                    sidebarImg.src = rawData.image_url;
-                    sidebarImgBox.classList.add('active');
+                    sidebarImg.src = rawData.image_url; sidebarImgBox.classList.add('active');
                 } else {
-                    // 如果没图，隐藏投影区
-                    sidebarImgBox.classList.remove('active');
-                    sidebarImg.src = '';
+                    sidebarImgBox.classList.remove('active'); sidebarImg.src = '';
                 }
-                // -------------------------
 
-                if (isBirth) { 
-                    infoText = `👶 Born in ${year}`; 
-                    hoverInfoEl.classList.add('gold-text'); 
-                }
+                if (isBirth) { infoText = `👶 Born in ${year}`; hoverInfoEl.classList.add('gold-text'); }
                 else if (note || hasImage) { 
                     const contentText = note || "📸 Image Memory";
-                    infoText = `📌 ${contentText} (Age ${age})`; 
-                    hoverInfoEl.classList.add('blue-text'); 
+                    infoText = `📌 ${contentText} (Age ${age})`; hoverInfoEl.classList.add('blue-text'); 
                 }
                 else if (isCurrent) infoText = 'NOW · 此刻';
                 else infoText = `${year} (Age ${age})`;
                 
                 hoverInfoEl.textContent = infoText;
-
-                // hoverInfoEl.className = 'hover-info';
-                // let infoText = '';
-                
-                // if (isBirth) { 
-                //     infoText = `👶 Born in ${year}`; 
-                //     hoverInfoEl.classList.add('gold-text'); 
-                // }
-                // else if (note || hasImage) { 
-                //     // 优先显示笔记，没笔记显示 "Image Memory"
-                //     const contentText = note || "📸 Image Memory";
-                //     infoText = `📌 ${contentText} (Age ${age})`; 
-                //     hoverInfoEl.classList.add('blue-text'); 
-                // }
-                // else if (isCurrent) infoText = 'NOW · 此刻';
-                // else infoText = `${year} (Age ${age})`;
-                
-                // hoverInfoEl.textContent = infoText;
             };
 
             const edit = () => openModal(i, rawData, age);
 
             div.addEventListener('mouseenter', showInfo);
-            // const edit = () => openModal(i, rawData, age);
-
-            // div.addEventListener('mouseenter', showInfo);
             div.addEventListener('click', e => {
                 e.stopPropagation();
                 if (window.innerWidth <= 768) {
@@ -1027,81 +773,24 @@
             frag.appendChild(div);
         }
         gridEl.appendChild(frag);
-        // --- 【修改】鼠标离开网格时，同时清空文字和图片 ---
         gridEl.addEventListener('mouseleave', () => { 
             if (window.innerWidth > 768) {
-                hoverInfoEl.textContent = ''; 
-                sidebarImgBox.classList.remove('active'); // 隐藏图片
-                sidebarImg.src = '';
+                hoverInfoEl.textContent = ''; sidebarImgBox.classList.remove('active'); sidebarImg.src = '';
             }
         });
-        // gridEl.addEventListener('mouseleave', () => { if (window.innerWidth > 768) hoverInfoEl.textContent = ''; });
     }
-    // function renderGrid() {
-    //     gridEl.innerHTML = '';
-    //     const birthdate = new Date(dateInput.value);
-    //     const today = new Date();
-    //     const oneWeek = 1000 * 60 * 60 * 24 * 7;
-        
-    //     let diffWeeks = Math.floor((today - birthdate) / oneWeek);
-    //     diffWeeks = Math.max(0, Math.min(diffWeeks, TOTAL_WEEKS));
-        
-    //     // 更新全局统计数据，供分享使用
-    //     currentLifePercent = ((diffWeeks / TOTAL_WEEKS) * 100).toFixed(1);
-    //     const left = TOTAL_WEEKS - diffWeeks;
-        
-    //     statsEl.innerHTML = `Used: <strong>${diffWeeks}</strong> weeks (${currentLifePercent}%)<br>Remaining: <strong>${left}</strong> weeks`;
-
-    //     const frag = document.createDocumentFragment();
-    //     for (let i = 0; i < TOTAL_WEEKS; i++) {
-    //         const div = document.createElement('div');
-    //         div.className = 'cell';
-    //         const age = Math.floor(i / WEEKS_PER_YEAR);
-    //         const year = birthdate.getFullYear() + age;
-    //         const note = milestones[i];
-            
-    //         const isPast = i < diffWeeks;
-    //         const isCurrent = i === diffWeeks;
-    //         const isBirth = i === 0;
-
-    //         if (isPast) div.classList.add('past');
-    //         else if (isCurrent) div.classList.add('current');
-            
-    //         if (isBirth) div.classList.add('birth');
-    //         else if (note) div.classList.add('milestone');
-
-    //         const showInfo = () => {
-    //             hoverInfoEl.className = 'hover-info';
-    //             if (isBirth) { hoverInfoEl.textContent = `👶 Born in ${year}`; hoverInfoEl.classList.add('gold-text'); }
-    //             else if (note) { hoverInfoEl.textContent = `📌 ${note} (Age ${age})`; hoverInfoEl.classList.add('blue-text'); }
-    //             else if (isCurrent) hoverInfoEl.textContent = 'NOW · 此刻';
-    //             else hoverInfoEl.textContent = `${year} (Age ${age})`;
-    //         };
-    //         const edit = () => openModal(i, milestones[i], age);
-
-    //         div.addEventListener('mouseenter', showInfo);
-    //         div.addEventListener('click', e => {
-    //             e.stopPropagation();
-    //             if (window.innerWidth <= 768) {
-    //                 if (lastClickedIndex !== i) {
-    //                     showInfo();
-    //                     document.querySelector('.cell.selected')?.classList.remove('selected');
-    //                     div.classList.add('selected');
-    //                     lastClickedIndex = i;
-    //                 } else { edit(); div.classList.remove('selected'); lastClickedIndex = -1; }
-    //             } else { showInfo(); edit(); }
-    //         });
-    //         frag.appendChild(div);
-    //     }
-    //     gridEl.appendChild(frag);
-    //     gridEl.addEventListener('mouseleave', () => { if (window.innerWidth > 768) hoverInfoEl.textContent = ''; });
-    // }
 
     // ================= Init =================
     const savedBirth = localStorage.getItem('lifeGridBirthdate');
     if (savedBirth) dateInput.value = savedBirth;
-    dateInput.addEventListener('change', () => { localStorage.setItem('lifeGridBirthdate', dateInput.value); renderGrid(); });
-    // 全局点击取消选中
+    
+    // 【核心修复 Bug 2】更改生日时，同时刷新 Timeline
+    dateInput.addEventListener('change', () => { 
+        localStorage.setItem('lifeGridBirthdate', dateInput.value); 
+        renderGrid();
+        if (timelineEl && !timelineEl.classList.contains('hidden')) renderTimeline();
+    });
+    
     document.body.addEventListener('click', e => {
         if (window.innerWidth <= 768 && !e.target.classList.contains('cell')) {
             document.querySelector('.cell.selected')?.classList.remove('selected');
