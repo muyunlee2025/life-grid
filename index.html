@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Life Grid (v2.2.0 Final)</title>
+    <title>Life Grid (v2.2.1 Fixed)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -114,7 +114,17 @@
         .btn { padding: 8px 16px; border-radius: 4px; cursor: pointer; border: none; font-weight: 500; }
         .btn-cancel { background: transparent; color: #999; }
         .btn-save { background: var(--ink-color); color: #fff; }
-        .btn-delete { color: var(--accent-color); background: transparent; margin-right: auto; }
+        
+        /* 修复版删除按钮样式 */
+        .btn-delete { 
+            color: var(--accent-color); background: transparent; margin-right: auto; 
+            transition: all 0.2s ease;
+        }
+        .btn-delete.confirming {
+            background-color: var(--accent-color);
+            color: white;
+            font-weight: bold;
+        }
 
         /* Share Result */
         #shareResultContent { text-align: center; background: transparent; box-shadow: none; padding: 0; }
@@ -185,10 +195,10 @@
             <div class="header-group">
                 <h1>LIFE WEEKS</h1>
                 <div class="view-toggle">
-                    <button id="viewGridBtn" class="toggle-btn active" title="Grid View">
+                    <button type="button" id="viewGridBtn" class="toggle-btn active" title="Grid View">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                     </button>
-                    <button id="viewListBtn" class="toggle-btn" title="Timeline View">
+                    <button type="button" id="viewListBtn" class="toggle-btn" title="Timeline View">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                     </button>
                 </div>
@@ -201,7 +211,7 @@
             <div class="stats" id="stats"></div>
 
             <div class="share-btn-container">
-                <button class="share-btn" onclick="generateShareCard()">
+                <button type="button" class="share-btn" onclick="generateShareCard()">
                     <svg class="share-icon" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
                     生成人生进度卡片
                 </button>
@@ -212,13 +222,13 @@
                     <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #999; font-weight: 600;">Cloud Sync</label>
                     <div style="display: flex; gap: 5px; margin-top: 10px;">
                         <input type="email" id="email" class="auth-input" placeholder="Enter Email to Sync">
-                        <button onclick="handleLogin()" id="login-btn-desktop" class="auth-btn">永久备份</button>
+                        <button type="button" onclick="handleLogin()" id="login-btn-desktop" class="auth-btn">永久备份</button>
                     </div>
                 </div>
                 <div id="user-info" style="display: none;">
                     <span style="color: #666; font-weight: 500; font-size: 0.85rem;"><span style="font-size: 0.5rem; vertical-align: middle; margin-right: 4px;">🟢</span>Cloud Connected</span><br>
                     <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">Data is safe in Supabase</div>
-                    <button onclick="handleLogout()" class="logout-btn">LOGOUT</button>
+                    <button type="button" onclick="handleLogout()" class="logout-btn">LOGOUT</button>
                 </div>
             </div>
 
@@ -243,13 +253,13 @@
                 <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #999; font-weight: 600;">Cloud Sync</label>
                 <div style="display: flex; gap: 5px; margin-top: 10px;">
                     <input type="email" id="email-mobile" class="auth-input" placeholder="Enter Email to Sync">
-                    <button onclick="handleLogin(true)" id="login-btn-mobile" class="auth-btn">LOGIN</button>
+                    <button type="button" onclick="handleLogin(true)" id="login-btn-mobile" class="auth-btn">LOGIN</button>
                 </div>
             </div>
             <div id="user-info-mobile" style="display: none;">
                 <span style="color: #666; font-weight: 500; font-size: 0.85rem;"><span style="font-size: 0.5rem; vertical-align: middle; margin-right: 4px;">🟢</span>Cloud Connected</span><br>
                 <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">Data is safe in Supabase</div>
-                <button onclick="handleLogout()" class="logout-btn">LOGOUT</button>
+                <button type="button" onclick="handleLogout()" class="logout-btn">LOGOUT</button>
             </div>
         </div>
     </div>
@@ -260,21 +270,21 @@
             <textarea class="modal-textarea" id="modalInput" placeholder="What happened this week?"></textarea>
             
             <div class="modal-image-section">
-                <input type="file" id="imageInput" accept="image/*" hidden>
+                <input type="file" id="imageInput" accept="image/png, image/jpeg, image/jpg, image/webp" hidden>
                 <div id="imagePreviewContainer" class="image-preview-box hidden">
                     <img id="imagePreview" src="" alt="Memory">
-                    <button id="removeImageBtn" class="remove-img-btn">×</button>
+                    <button type="button" id="removeImageBtn" class="remove-img-btn">×</button>
                 </div>
-                <button id="uploadTriggerBtn" class="upload-trigger-btn">
+                <button type="button" id="uploadTriggerBtn" class="upload-trigger-btn">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                     Add Photo
                 </button>
             </div>
         
             <div class="modal-actions">
-                <button class="btn btn-delete" onclick="deleteNote()">DELETE</button>
-                <button class="btn btn-cancel" onclick="closeModal()">CANCEL</button>
-                <button class="btn btn-save" onclick="saveFromModal()">SAVE</button>
+                <button type="button" class="btn btn-delete" onclick="deleteNote()">DELETE</button>
+                <button type="button" class="btn btn-cancel" onclick="closeModal()">CANCEL</button>
+                <button type="button" class="btn btn-save" onclick="saveFromModal()">SAVE</button>
             </div>
         </div>
     </div>
@@ -283,7 +293,7 @@
         <div class="modal-card" id="shareResultContent">
             <div id="imgContainer"></div>
             <div class="share-tip">长按图片保存，分享到朋友圈 📸</div>
-            <button class="close-share-btn" onclick="document.getElementById('shareResultModal').classList.remove('active')">关闭</button>
+            <button type="button" class="close-share-btn" onclick="document.getElementById('shareResultModal').classList.remove('active')">关闭</button>
         </div>
     </div>
 
@@ -337,6 +347,7 @@
     let currentUser = null;    
     let lastClickedIndex = -1; 
     let currentLifePercent = 0; 
+    let deleteConfirmTimer = null; // 用于删除按钮的防抖
 
     const CLEAN_URL = window.location.origin + window.location.pathname;
 
@@ -346,7 +357,6 @@
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
-    // 【核心修复 Bug 3】安全解析 JSON (防白屏)
     function safeJSONParse(key) {
         try {
             const item = localStorage.getItem(key);
@@ -358,11 +368,9 @@
         }
     }
 
-    // 【核心修复 Bug 1】清理孤儿文件 (资源回收)
     async function deleteOldFile(fullUrl) {
         if (!fullUrl) return;
         try {
-            // 解析出相对路径 (例如: user_id/filename)
             const pathParts = fullUrl.split('/milestone-images/');
             if (pathParts.length > 1) {
                 const relativePath = pathParts[1];
@@ -390,9 +398,7 @@
 
     async function syncAndLoadData() {
         try {
-            let localData = safeJSONParse('lifeGridMilestones'); // 使用安全解析
-            
-            // Clean old data structure
+            let localData = safeJSONParse('lifeGridMilestones');
             for (let key in localData) {
                 if (typeof localData[key] === 'string') localData[key] = { content: localData[key], image_url: null };
             }
@@ -452,6 +458,7 @@
     }
 
     async function handleLogout() {
+        // 使用原生 confirm 是 OK 的，因为这里不涉及复杂图层叠加
         if (!confirm("确定退出登录？本地数据将清除。")) return;
         await supabaseClient.auth.signOut();
         localStorage.removeItem('lifeGridMilestones'); 
@@ -468,7 +475,6 @@
         if (currentUser) {
             try {
                 if (!content && !imageUrl) {
-                    // 安全增强：删除时校验 user_id
                     await supabaseClient.from('test_milestones')
                         .delete()
                         .eq('week_index', index)
@@ -481,7 +487,6 @@
             } catch (e) { console.error("Cloud save failed:", e); }
         }
         
-        // 同步刷新 Timeline
         if (timelineEl && !timelineEl.classList.contains('hidden')) renderTimeline();
     }
 
@@ -554,8 +559,8 @@
     // ================= Modal & Image Logic =================
     let currentEditingIndex = -1; 
     let currentTempImageFile = null; 
-    let currentExistingImageUrl = null; // 当前界面上认为存在的图
-    let originalCloudUrl = null;        // 【核心修复 Bug 1】记住打开时的图
+    let currentExistingImageUrl = null; 
+    let originalCloudUrl = null;        
 
     const imageInput = document.getElementById('imageInput');
     const imagePreviewContainer = document.getElementById('imagePreviewContainer');
@@ -567,6 +572,9 @@
         currentEditingIndex = index;
         currentTempImageFile = null;
         
+        // 每次打开时，重置删除按钮状态
+        resetDeleteBtn();
+
         let content = '';
         let imageUrl = null;
         
@@ -578,7 +586,7 @@
             }
         }
         currentExistingImageUrl = imageUrl;
-        originalCloudUrl = imageUrl; // 记录原始状态，用于判断是否删除旧图
+        originalCloudUrl = imageUrl; 
 
         modalInput.value = content;
         if (index === 0) modalTitle.textContent = "👶 The Beginning";
@@ -590,14 +598,13 @@
         if(!imageUrl) setTimeout(() => modalInput.focus(), 100); 
     }
 
-    function closeModal() { modal.classList.remove('active'); modalInput.blur(); }
+    function closeModal() { modal.classList.remove('active'); modalInput.blur(); resetDeleteBtn(); }
     uploadTriggerBtn.addEventListener('click', () => imageInput.click());
     
     imageInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // 【核心修复 Bug 5】MIME 类型校验
         if (!file.type.match(/^image\/(jpeg|png|gif|webp)$/)) {
             alert("Only JPG, PNG, GIF, WEBP allowed.");
             return;
@@ -620,7 +627,7 @@
         uploadTriggerBtn.classList.remove('hidden');
         imageInput.value = ''; 
         currentTempImageFile = null;
-        currentExistingImageUrl = null; // 显式置空，防止“复活”
+        currentExistingImageUrl = null; 
     }
 
     removeImageBtn.addEventListener('click', (e) => { e.stopPropagation(); resetPreview(); });
@@ -654,25 +661,46 @@
             finalImageUrl = null;
         }
 
-        // 【核心修复 Bug 1 & 2】清理旧图逻辑
-        // 如果原图存在，且（最终图是新的 OR 最终图没了），说明原图废弃，删之
         if (originalCloudUrl && originalCloudUrl !== finalImageUrl) {
-            deleteOldFile(originalCloudUrl); // 异步删除，不阻塞体验
+            deleteOldFile(originalCloudUrl); 
         }
 
         await saveMilestone(currentEditingIndex, content, finalImageUrl);
         closeModal();
     }
 
+    // 【核心修复】重写的删除逻辑：无原生弹窗，双击确认
     function deleteNote() {
         if (currentEditingIndex === -1) return;
-        if (confirm("Clear this memory completely?")) {
-            // 删除笔记时，如果有图，也顺便清理云端资源
+        
+        const delBtn = document.querySelector('.btn-delete');
+        
+        // 第一次点击：变色提示
+        if (!delBtn.classList.contains('confirming')) {
+            delBtn.classList.add('confirming');
+            delBtn.textContent = "SURE?";
+            
+            // 3秒后自动恢复
+            deleteConfirmTimer = setTimeout(() => {
+                resetDeleteBtn();
+            }, 3000);
+        } else {
+            // 第二次点击：执行删除
             if (originalCloudUrl) deleteOldFile(originalCloudUrl);
             saveMilestone(currentEditingIndex, null, null);
             closeModal();
         }
     }
+
+    function resetDeleteBtn() {
+        const delBtn = document.querySelector('.btn-delete');
+        if (delBtn) {
+            delBtn.classList.remove('confirming');
+            delBtn.textContent = "DELETE";
+        }
+        if (deleteConfirmTimer) clearTimeout(deleteConfirmTimer);
+    }
+    
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
     // ================= Share =================
@@ -732,7 +760,6 @@
             if (isBirth) div.classList.add('birth');
             else if (note || hasImage) div.classList.add('milestone');
             
-            // 【核心修复 Bug 4】视觉抖动修复：用 box-shadow 代替 border
             if (hasImage) div.style.boxShadow = "inset 0 0 0 1px var(--ink-color)"; 
 
             const showInfo = () => {
@@ -784,7 +811,6 @@
     const savedBirth = localStorage.getItem('lifeGridBirthdate');
     if (savedBirth) dateInput.value = savedBirth;
     
-    // 【核心修复 Bug 2】更改生日时，同时刷新 Timeline
     dateInput.addEventListener('change', () => { 
         localStorage.setItem('lifeGridBirthdate', dateInput.value); 
         renderGrid();
