@@ -207,6 +207,109 @@
             .mobile-only-auth { display: block; margin-top: 40px; text-align: center; }
             .share-btn-container { display: flex; justify-content: center; margin-bottom: 20px; }
         }
+
+        /* --- 新增：图片上传 UI --- */
+.modal-image-section {
+    margin-bottom: 20px;
+}
+
+.hidden { display: none !important; }
+
+/* 上传按钮 (虚线框风格) */
+.upload-trigger-btn {
+    width: 100%;
+    padding: 10px;
+    border: 2px dashed #ccc;
+    background: transparent;
+    color: #999;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.upload-trigger-btn:hover {
+    border-color: var(--ink-color);
+    color: var(--ink-color);
+    background: rgba(0,0,0,0.02);
+}
+
+/* 图片预览容器 */
+.image-preview-box {
+    position: relative;
+    width: 100%;
+    max-height: 200px; /* 限制高度，防止弹窗太长 */
+    border-radius: 6px;
+    overflow: hidden;
+    background: #f0f0f0;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+.image-preview-box img {
+    max-width: 100%;
+    max-height: 200px;
+    object-fit: contain; /* 保持比例 */
+    display: block;
+    margin: 0 auto;
+}
+
+/* 删除图片的小叉号 */
+.remove-img-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-img-btn:hover {
+    background: red;
+}
+
+/* 侧边栏图片投影 */
+.sidebar-image-box {
+    margin-top: 20px;
+    width: 100%;
+    height: 0; /* 平时高度为0，不占地 */
+    padding-bottom: 0; /* 保持宽高比技巧 */
+    position: relative;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* 激活状态 */
+.sidebar-image-box.active {
+    height: auto; /* 撑开高度 */
+    min-height: 150px;
+    opacity: 1;
+    border: 1px solid #eee;
+}
+
+.sidebar-image-box img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
     </style>
 </head>
 <body>
@@ -256,6 +359,13 @@
                     <button onclick="handleLogout()" class="logout-btn">LOGOUT</button>
                 </div>
             </div>
+            <!-- <div class="stats" id="stats"></div> -->
+
+<div id="sidebarImageContainer" class="sidebar-image-box">
+    <img id="sidebarImage" src="" alt="">
+</div>
+
+<!-- <div class="hover-info" id="hoverInfo"></div> -->
 
             <div class="hover-info" id="hoverInfo"></div>
             
@@ -287,13 +397,43 @@
     <div class="modal-overlay" id="noteModal">
         <div class="modal-card">
             <div class="modal-title" id="modalTitle">Edit Milestone</div>
+            
             <textarea class="modal-textarea" id="modalInput" placeholder="What happened this week?"></textarea>
+            
+            <div class="modal-image-section">
+                <!-- <input type="file" id="imageInput" accept="image/*" hidden> -->
+                <input type="file" id="imageInput" accept="image/png, image/jpeg, image/jpg, image/webp" hidden>
+                
+                <div id="imagePreviewContainer" class="image-preview-box hidden">
+                    <img id="imagePreview" src="" alt="Memory">
+                    <button id="removeImageBtn" class="remove-img-btn">×</button>
+                </div>
+        
+                <button id="uploadTriggerBtn" class="upload-trigger-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    Add Photo
+                </button>
+            </div>
+        
             <div class="modal-actions">
                 <button class="btn btn-delete" onclick="deleteNote()">DELETE</button>
                 <button class="btn btn-cancel" onclick="closeModal()">CANCEL</button>
                 <button class="btn btn-save" onclick="saveFromModal()">SAVE</button>
             </div>
         </div>
+        <!-- <div class="modal-card">
+            <div class="modal-title" id="modalTitle">Edit Milestone</div>
+            <textarea class="modal-textarea" id="modalInput" placeholder="What happened this week?"></textarea>
+            <div class="modal-actions">
+                <button class="btn btn-delete" onclick="deleteNote()">DELETE</button>
+                <button class="btn btn-cancel" onclick="closeModal()">CANCEL</button>
+                <button class="btn btn-save" onclick="saveFromModal()">SAVE</button>
+            </div>
+        </div> -->
     </div>
 
     <div class="modal-overlay" id="shareResultModal">
@@ -382,38 +522,104 @@
 
     async function syncAndLoadData() {
         try {
-            const localRaw = localStorage.getItem('lifeGridMilestones');
-            const localData = localRaw ? JSON.parse(localRaw) : {};
-            const { data: cloudData, error } = await supabaseClient.from('test_milestones').select('week_index, content');
-            if (error) throw error;
-
-            const cloudMap = new Map();
-            cloudData.forEach(row => cloudMap.set(row.week_index, row.content));
-
-            const updatesToUpload = [];
-            for (const [key, content] of Object.entries(localData)) {
-                const weekIdx = parseInt(key);
-                if (!cloudMap.has(weekIdx) && content) {
-                    updatesToUpload.push({ user_id: currentUser.id, week_index: weekIdx, content: content });
+            // 1. 获取本地数据 (兼容旧格式：如果是字符串，转为对象)
+            let localRaw = localStorage.getItem('lifeGridMilestones');
+            let localData = localRaw ? JSON.parse(localRaw) : {};
+            
+            // 数据清洗：把所有旧的 string 格式转为 { content: string } 对象
+            for (let key in localData) {
+                if (typeof localData[key] === 'string') {
+                    localData[key] = { content: localData[key], image_url: null };
                 }
             }
 
-            if (updatesToUpload.length > 0) {
-                await supabaseClient.from('test_milestones').upsert(updatesToUpload, { onConflict: 'user_id, week_index' });
-                    updatesToUpload.forEach(item => cloudMap.set(item.week_index, item.content));
+            // 2. 获取云端数据 (新增 image_url 列)
+            const { data: cloudData, error } = await supabaseClient
+                .from('test_milestones')
+                .select('week_index, content, image_url');
+
+            if (error) throw error;
+
+            // 3. 建立云端索引
+            const cloudMap = new Map();
+            cloudData.forEach(row => {
+                cloudMap.set(row.week_index, { 
+                    content: row.content, 
+                    image_url: row.image_url 
+                });
+            });
+
+            // 4. 差异比对与合并
+            const updatesToUpload = [];
+            for (const [key, localVal] of Object.entries(localData)) {
+                const weekIdx = parseInt(key);
+                // 如果云端没有，且本地有内容，则准备上传
+                if (!cloudMap.has(weekIdx) && (localVal.content || localVal.image_url)) {
+                    updatesToUpload.push({
+                        user_id: currentUser.id,
+                        week_index: weekIdx,
+                        content: localVal.content,
+                        image_url: localVal.image_url
+                    });
+                }
             }
 
-            milestones = {};
-            for (const [weekIdx, content] of cloudMap.entries()) {
-                milestones[weekIdx] = content;
+            // 5. 批量上传新数据
+            if (updatesToUpload.length > 0) {
+                await supabaseClient.from('test_milestones').upsert(updatesToUpload, { onConflict: 'user_id, week_index' });
+                updatesToUpload.forEach(item => cloudMap.set(item.week_index, { content: item.content, image_url: item.image_url }));
             }
+
+            // 6. 最终合并回内存
+            milestones = {};
+            for (const [weekIdx, data] of cloudMap.entries()) {
+                milestones[weekIdx] = data; // 现在这是个对象 {content, image_url}
+            }
+
+            // 7. 更新本地缓存
             localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
             renderGrid();
+            
         } catch (err) {
             console.error("Sync Critical Error:", err);
             loadLocalOnly();
         }
     }
+
+    // async function syncAndLoadData() {
+    //     try {
+    //         const localRaw = localStorage.getItem('lifeGridMilestones');
+    //         const localData = localRaw ? JSON.parse(localRaw) : {};
+    //         const { data: cloudData, error } = await supabaseClient.from('test_milestones').select('week_index, content');
+    //         if (error) throw error;
+
+    //         const cloudMap = new Map();
+    //         cloudData.forEach(row => cloudMap.set(row.week_index, row.content));
+
+    //         const updatesToUpload = [];
+    //         for (const [key, content] of Object.entries(localData)) {
+    //             const weekIdx = parseInt(key);
+    //             if (!cloudMap.has(weekIdx) && content) {
+    //                 updatesToUpload.push({ user_id: currentUser.id, week_index: weekIdx, content: content });
+    //             }
+    //         }
+
+    //         if (updatesToUpload.length > 0) {
+    //             await supabaseClient.from('test_milestones').upsert(updatesToUpload, { onConflict: 'user_id, week_index' });
+    //                 updatesToUpload.forEach(item => cloudMap.set(item.week_index, item.content));
+    //         }
+
+    //         milestones = {};
+    //         for (const [weekIdx, content] of cloudMap.entries()) {
+    //             milestones[weekIdx] = content;
+    //         }
+    //         localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
+    //         renderGrid();
+    //     } catch (err) {
+    //         console.error("Sync Critical Error:", err);
+    //         loadLocalOnly();
+    //     }
+    // }
 
     function loadLocalOnly() {
         const local = localStorage.getItem('lifeGridMilestones');
@@ -456,18 +662,50 @@
         window.location.reload(); 
     }
 
-    async function saveMilestone(index, content) {
-        if (!content) delete milestones[index]; 
-        else milestones[index] = content;
+    async function saveMilestone(index, content, imageUrl = null) {
+        // 1. 内存更新
+        // 如果内容和图片都没了，就删除
+        if (!content && !imageUrl) {
+            delete milestones[index];
+        } else {
+            milestones[index] = { content, image_url: imageUrl };
+        }
+        
+        // 2. 本地持久化
         localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
         renderGrid();
+
+        // 3. 云端同步
         if (currentUser) {
             try {
-                if (!content) await supabaseClient.from('test_milestones').delete().eq('week_index', index);
-                else await supabaseClient.from('test_milestones').upsert({ user_id: currentUser.id, week_index: index, content }, { onConflict: 'user_id, week_index' });
-            } catch (e) { console.error("Cloud save failed:", e); }
+                if (!content && !imageUrl) {
+                    await supabaseClient.from('test_milestones').delete().eq('week_index', index);
+                } else {
+                    await supabaseClient.from('test_milestones').upsert({
+                        user_id: currentUser.id,
+                        week_index: index,
+                        content: content,
+                        image_url: imageUrl
+                    }, { onConflict: 'user_id, week_index' });
+                }
+            } catch (e) {
+                console.error("Cloud save failed:", e);
+            }
         }
     }
+
+    // async function saveMilestone(index, content) {
+    //     if (!content) delete milestones[index]; 
+    //     else milestones[index] = content;
+    //     localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
+    //     renderGrid();
+    //     if (currentUser) {
+    //         try {
+    //             if (!content) await supabaseClient.from('test_milestones').delete().eq('week_index', index);
+    //             else await supabaseClient.from('test_milestones').upsert({ user_id: currentUser.id, week_index: index, content }, { onConflict: 'user_id, week_index' });
+    //         } catch (e) { console.error("Cloud save failed:", e); }
+    //     }
+    // }
 
     function updateAuthUI(isLoggedIn) {
         const displays = isLoggedIn ? ['none', 'block'] : ['block', 'none'];
@@ -475,21 +713,170 @@
         [userInfo, userInfoMobile].forEach(el => { if(el) el.style.display = displays[1]; });
     }
 
-    // ================= Modal Logic =================
+    // ================= Modal & Image Logic =================
     let currentEditingIndex = -1; 
-    function openModal(index, content, age) {
+    let currentTempImageFile = null; // 暂存新选择的文件
+    let currentExistingImageUrl = null; // 暂存已有的云端URL
+
+    // DOM 元素引用 (确保你的HTML里id对得上)
+    const imageInput = document.getElementById('imageInput');
+    const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+    const imagePreview = document.getElementById('imagePreview');
+    const uploadTriggerBtn = document.getElementById('uploadTriggerBtn');
+    const removeImageBtn = document.getElementById('removeImageBtn');
+
+    function openModal(index, data, age) {
         currentEditingIndex = index;
-        modalInput.value = content || '';
+        currentTempImageFile = null;
+        
+        // 兼容处理：data可能是字符串(旧数据)或对象(新数据)
+        let content = '';
+        let imageUrl = null;
+        
+        if (data) {
+            if (typeof data === 'string') content = data;
+            else {
+                content = data.content || '';
+                imageUrl = data.image_url || null;
+            }
+        }
+        currentExistingImageUrl = imageUrl;
+
+        // UI 初始化
+        modalInput.value = content;
         if (index === 0) modalTitle.textContent = "👶 The Beginning";
-        else if (content) modalTitle.textContent = `📝 Edit Note (Age ${age})`;
+        else if (data) modalTitle.textContent = `📝 Edit Memory (Age ${age})`;
         else modalTitle.textContent = `✨ New Memory (Age ${age})`;
+
+        // 图片预览状态重置
+        if (imageUrl) {
+            showPreview(imageUrl);
+        } else {
+            resetPreview();
+        }
+
         modal.classList.add('active');
-        setTimeout(() => modalInput.focus(), 100); 
+        // 如果没图，自动聚焦输入框；有图就不聚焦，防止手机端键盘弹起挡住图
+        if(!imageUrl) setTimeout(() => modalInput.focus(), 100); 
     }
-    function closeModal() { modal.classList.remove('active'); modalInput.blur(); }
-    function saveFromModal() { if (currentEditingIndex === -1) return; saveMilestone(currentEditingIndex, modalInput.value.trim()); closeModal(); }
-    function deleteNote() { if (currentEditingIndex === -1) return; if (confirm("Clear this memory?")) { saveMilestone(currentEditingIndex, null); closeModal(); } }
+
+    function closeModal() {
+        modal.classList.remove('active');
+        modalInput.blur();
+    }
+
+    // 触发文件选择
+    uploadTriggerBtn.addEventListener('click', () => imageInput.click());
+
+    // 监听文件选择
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        currentTempImageFile = file;
+        const localUrl = URL.createObjectURL(file); // 创建本地预览流
+        showPreview(localUrl);
+    });
+
+    // 显示预览
+    function showPreview(url) {
+        imagePreview.src = url;
+        imagePreviewContainer.classList.remove('hidden');
+        uploadTriggerBtn.classList.add('hidden');
+    }
+
+    // 重置/删除预览
+    function resetPreview() {
+        imagePreview.src = '';
+        imagePreviewContainer.classList.add('hidden');
+        uploadTriggerBtn.classList.remove('hidden');
+        imageInput.value = ''; // 清空 input
+        currentTempImageFile = null;
+        currentExistingImageUrl = null;
+    }
+
+    // 点击小叉号删除图片
+    removeImageBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // 防止触发其他点击
+        resetPreview();
+    });
+
+    // 点击 SAVE 按钮
+    async function saveFromModal() {
+        if (currentEditingIndex === -1) return;
+        
+        const content = modalInput.value.trim();
+        const saveBtn = document.querySelector('.btn-save');
+        const originalText = saveBtn.textContent;
+
+        // 1. 如果有新文件，先上传
+        let finalImageUrl = currentExistingImageUrl;
+
+        if (currentTempImageFile && currentUser) {
+            saveBtn.textContent = "Uploading...";
+            saveBtn.disabled = true;
+
+            try {
+                const fileExt = currentTempImageFile.name.split('.').pop();
+                const fileName = `${currentUser.id}/${currentEditingIndex}_${Date.now()}.${fileExt}`;
+                
+                const { data, error } = await supabaseClient.storage
+                    .from('milestone-images')
+                    .upload(fileName, currentTempImageFile);
+
+                if (error) throw error;
+
+                // 获取公开链接
+                const { data: { publicUrl } } = supabaseClient.storage
+                    .from('milestone-images')
+                    .getPublicUrl(fileName);
+                
+                finalImageUrl = publicUrl;
+
+            } catch (err) {
+                console.error("Upload failed:", err);
+                alert("Upload failed. Text saved, image skipped.");
+                finalImageUrl = null;
+            } finally {
+                saveBtn.textContent = originalText;
+                saveBtn.disabled = false;
+            }
+        } else if (currentTempImageFile && !currentUser) {
+            alert("Please Login to upload images! (Saving text only)");
+            finalImageUrl = null;
+        }
+
+        // 2. 保存所有数据
+        await saveMilestone(currentEditingIndex, content, finalImageUrl);
+        closeModal();
+    }
+
+    function deleteNote() {
+        if (currentEditingIndex === -1) return;
+        if (confirm("Clear this memory completely?")) {
+            saveMilestone(currentEditingIndex, null, null);
+            closeModal();
+        }
+    }
+    
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    // 从这里开始替换
+    // ================= Modal Logic =================
+    // let currentEditingIndex = -1; 
+    // function openModal(index, content, age) {
+    //     currentEditingIndex = index;
+    //     modalInput.value = content || '';
+    //     if (index === 0) modalTitle.textContent = "👶 The Beginning";
+    //     else if (content) modalTitle.textContent = `📝 Edit Note (Age ${age})`;
+    //     else modalTitle.textContent = `✨ New Memory (Age ${age})`;
+    //     modal.classList.add('active');
+    //     setTimeout(() => modalInput.focus(), 100); 
+    // }
+    // function closeModal() { modal.classList.remove('active'); modalInput.blur(); }
+    // function saveFromModal() { if (currentEditingIndex === -1) return; saveMilestone(currentEditingIndex, modalInput.value.trim()); closeModal(); }
+    // function deleteNote() { if (currentEditingIndex === -1) return; if (confirm("Clear this memory?")) { saveMilestone(currentEditingIndex, null); closeModal(); } }
+    // modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
     // ================= 分享生成逻辑 =================
     function generateShareCard() {
@@ -520,6 +907,9 @@
 
     // ================= Grid Renderer =================
     function renderGrid() {
+        // 在 renderGrid 函数最开始，获取新元素
+    const sidebarImgBox = document.getElementById('sidebarImageContainer');
+    const sidebarImg = document.getElementById('sidebarImage');
         gridEl.innerHTML = '';
         const birthdate = new Date(dateInput.value);
         const today = new Date();
@@ -528,7 +918,6 @@
         let diffWeeks = Math.floor((today - birthdate) / oneWeek);
         diffWeeks = Math.max(0, Math.min(diffWeeks, TOTAL_WEEKS));
         
-        // 更新全局统计数据，供分享使用
         currentLifePercent = ((diffWeeks / TOTAL_WEEKS) * 100).toFixed(1);
         const left = TOTAL_WEEKS - diffWeeks;
         
@@ -540,7 +929,19 @@
             div.className = 'cell';
             const age = Math.floor(i / WEEKS_PER_YEAR);
             const year = birthdate.getFullYear() + age;
-            const note = milestones[i];
+            
+            // 数据解构：兼容旧字符串和新对象
+            let note = null;
+            let hasImage = false;
+            const rawData = milestones[i];
+            
+            if (rawData) {
+                if (typeof rawData === 'string') note = rawData;
+                else {
+                    note = rawData.content;
+                    hasImage = !!rawData.image_url;
+                }
+            }
             
             const isPast = i < diffWeeks;
             const isCurrent = i === diffWeeks;
@@ -550,18 +951,68 @@
             else if (isCurrent) div.classList.add('current');
             
             if (isBirth) div.classList.add('birth');
-            else if (note) div.classList.add('milestone');
+            // 如果有笔记或者有图片，都算 milestone
+            else if (note || hasImage) div.classList.add('milestone');
+
+            // 【新增】如果有图片，给格子加一个特殊的视觉标记（比如更深的颜色，或者border）
+            if (hasImage) {
+                div.style.border = "1px solid var(--ink-color)"; 
+            }
 
             const showInfo = () => {
                 hoverInfoEl.className = 'hover-info';
-                if (isBirth) { hoverInfoEl.textContent = `👶 Born in ${year}`; hoverInfoEl.classList.add('gold-text'); }
-                else if (note) { hoverInfoEl.textContent = `📌 ${note} (Age ${age})`; hoverInfoEl.classList.add('blue-text'); }
-                else if (isCurrent) hoverInfoEl.textContent = 'NOW · 此刻';
-                else hoverInfoEl.textContent = `${year} (Age ${age})`;
+                let infoText = '';
+                
+                // --- 【新增】图片投影逻辑 ---
+                if (hasImage && rawData.image_url) {
+                    sidebarImg.src = rawData.image_url;
+                    sidebarImgBox.classList.add('active');
+                } else {
+                    // 如果没图，隐藏投影区
+                    sidebarImgBox.classList.remove('active');
+                    sidebarImg.src = '';
+                }
+                // -------------------------
+
+                if (isBirth) { 
+                    infoText = `👶 Born in ${year}`; 
+                    hoverInfoEl.classList.add('gold-text'); 
+                }
+                else if (note || hasImage) { 
+                    const contentText = note || "📸 Image Memory";
+                    infoText = `📌 ${contentText} (Age ${age})`; 
+                    hoverInfoEl.classList.add('blue-text'); 
+                }
+                else if (isCurrent) infoText = 'NOW · 此刻';
+                else infoText = `${year} (Age ${age})`;
+                
+                hoverInfoEl.textContent = infoText;
+
+                // hoverInfoEl.className = 'hover-info';
+                // let infoText = '';
+                
+                // if (isBirth) { 
+                //     infoText = `👶 Born in ${year}`; 
+                //     hoverInfoEl.classList.add('gold-text'); 
+                // }
+                // else if (note || hasImage) { 
+                //     // 优先显示笔记，没笔记显示 "Image Memory"
+                //     const contentText = note || "📸 Image Memory";
+                //     infoText = `📌 ${contentText} (Age ${age})`; 
+                //     hoverInfoEl.classList.add('blue-text'); 
+                // }
+                // else if (isCurrent) infoText = 'NOW · 此刻';
+                // else infoText = `${year} (Age ${age})`;
+                
+                // hoverInfoEl.textContent = infoText;
             };
-            const edit = () => openModal(i, milestones[i], age);
+
+            const edit = () => openModal(i, rawData, age);
 
             div.addEventListener('mouseenter', showInfo);
+            // const edit = () => openModal(i, rawData, age);
+
+            // div.addEventListener('mouseenter', showInfo);
             div.addEventListener('click', e => {
                 e.stopPropagation();
                 if (window.innerWidth <= 768) {
@@ -576,8 +1027,75 @@
             frag.appendChild(div);
         }
         gridEl.appendChild(frag);
-        gridEl.addEventListener('mouseleave', () => { if (window.innerWidth > 768) hoverInfoEl.textContent = ''; });
+        // --- 【修改】鼠标离开网格时，同时清空文字和图片 ---
+        gridEl.addEventListener('mouseleave', () => { 
+            if (window.innerWidth > 768) {
+                hoverInfoEl.textContent = ''; 
+                sidebarImgBox.classList.remove('active'); // 隐藏图片
+                sidebarImg.src = '';
+            }
+        });
+        // gridEl.addEventListener('mouseleave', () => { if (window.innerWidth > 768) hoverInfoEl.textContent = ''; });
     }
+    // function renderGrid() {
+    //     gridEl.innerHTML = '';
+    //     const birthdate = new Date(dateInput.value);
+    //     const today = new Date();
+    //     const oneWeek = 1000 * 60 * 60 * 24 * 7;
+        
+    //     let diffWeeks = Math.floor((today - birthdate) / oneWeek);
+    //     diffWeeks = Math.max(0, Math.min(diffWeeks, TOTAL_WEEKS));
+        
+    //     // 更新全局统计数据，供分享使用
+    //     currentLifePercent = ((diffWeeks / TOTAL_WEEKS) * 100).toFixed(1);
+    //     const left = TOTAL_WEEKS - diffWeeks;
+        
+    //     statsEl.innerHTML = `Used: <strong>${diffWeeks}</strong> weeks (${currentLifePercent}%)<br>Remaining: <strong>${left}</strong> weeks`;
+
+    //     const frag = document.createDocumentFragment();
+    //     for (let i = 0; i < TOTAL_WEEKS; i++) {
+    //         const div = document.createElement('div');
+    //         div.className = 'cell';
+    //         const age = Math.floor(i / WEEKS_PER_YEAR);
+    //         const year = birthdate.getFullYear() + age;
+    //         const note = milestones[i];
+            
+    //         const isPast = i < diffWeeks;
+    //         const isCurrent = i === diffWeeks;
+    //         const isBirth = i === 0;
+
+    //         if (isPast) div.classList.add('past');
+    //         else if (isCurrent) div.classList.add('current');
+            
+    //         if (isBirth) div.classList.add('birth');
+    //         else if (note) div.classList.add('milestone');
+
+    //         const showInfo = () => {
+    //             hoverInfoEl.className = 'hover-info';
+    //             if (isBirth) { hoverInfoEl.textContent = `👶 Born in ${year}`; hoverInfoEl.classList.add('gold-text'); }
+    //             else if (note) { hoverInfoEl.textContent = `📌 ${note} (Age ${age})`; hoverInfoEl.classList.add('blue-text'); }
+    //             else if (isCurrent) hoverInfoEl.textContent = 'NOW · 此刻';
+    //             else hoverInfoEl.textContent = `${year} (Age ${age})`;
+    //         };
+    //         const edit = () => openModal(i, milestones[i], age);
+
+    //         div.addEventListener('mouseenter', showInfo);
+    //         div.addEventListener('click', e => {
+    //             e.stopPropagation();
+    //             if (window.innerWidth <= 768) {
+    //                 if (lastClickedIndex !== i) {
+    //                     showInfo();
+    //                     document.querySelector('.cell.selected')?.classList.remove('selected');
+    //                     div.classList.add('selected');
+    //                     lastClickedIndex = i;
+    //                 } else { edit(); div.classList.remove('selected'); lastClickedIndex = -1; }
+    //             } else { showInfo(); edit(); }
+    //         });
+    //         frag.appendChild(div);
+    //     }
+    //     gridEl.appendChild(frag);
+    //     gridEl.addEventListener('mouseleave', () => { if (window.innerWidth > 768) hoverInfoEl.textContent = ''; });
+    // }
 
     // ================= Init =================
     const savedBirth = localStorage.getItem('lifeGridBirthdate');
