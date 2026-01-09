@@ -1,101 +1,357 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Life Grid (v2.2.1 Fixed)</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
     <style>
         :root {
-            --bg-color: #f2f2f0;
-            --ink-color: #2c3e50;
-            --empty-color: #e3e3e3;
-            --accent-color: #c0392b; 
-            --milestone-color: #2980b9; 
-            --birth-color: #f39c12; 
-            --text-muted: #7f8c8d;
+            --bg-color: #fdfbf7;
+            /* Warm off-white */
+            --ink-color: #4a4036;
+            /* Dark Sepia/Warm Brown */
+            --empty-color: #e8e4d9;
+            /* Warm Beige */
+            --accent-color: #e07a5f;
+            /* Terracotta */
+            --milestone-color: #81b29a;
+            /* Sage Green */
+            --birth-color: #f2cc8f;
+            /* Sunset Yellow */
+            --text-muted: #9c8c74;
+            /* Muted Brown */
         }
 
         /* 基础重置 */
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; -webkit-user-select: none; -moz-user-select: none; user-select: none; -webkit-touch-callout: none; }
-        input, textarea { -webkit-user-select: auto; user-select: auto; }
-        .grid, .cell { caret-color: transparent !important; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        input,
+        textarea {
+            -webkit-user-select: auto;
+            user-select: auto;
+        }
+
+        .grid,
+        .cell {
+            caret-color: transparent !important;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
         body {
-            background-color: var(--bg-color); color: var(--ink-color);
+            background-color: var(--bg-color);
+            color: var(--ink-color);
             font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-            margin: 0; height: 100vh; height: 100dvh; overflow: hidden; 
-            display: flex; justify-content: center; align-items: center;
+            margin: 0;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             animation: fadeIn 1s ease-out;
         }
 
-        .layout { display: flex; width: 90vw; height: 90vh; max-width: 1400px; gap: 60px; align-items: center; }
-        .sidebar { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 300px; position: relative; }
-        .grid-container { flex: 1.5; height: 100%; display: flex; justify-content: center; align-items: center; position: relative; }
-        
+        .layout {
+            display: flex;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1400px;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .sidebar {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 300px;
+            position: relative;
+        }
+
+        .grid-container {
+            flex: 1.5;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
         /* Grid 样式 */
-        .grid { display: grid; grid-template-columns: repeat(52, 1fr); height: 100%; aspect-ratio: 52 / 80; gap: 2px; width: 100%; }
-        .cell { background-color: var(--empty-color); border-radius: 0.5px; width: 100%; height: 100%; cursor: pointer; transition: transform 0.1s; }
-        .cell.past { background-color: var(--ink-color); }
-        .cell.current { background-color: var(--accent-color); box-shadow: 0 0 8px var(--accent-color); z-index: 2; }
-        .cell.milestone { background-color: var(--milestone-color) !important; z-index: 1; }
-        .cell.birth { background-color: var(--birth-color) !important; z-index: 3; }
-        .cell.selected { z-index: 10; outline: 2px solid #fff; box-shadow: 0 0 4px 2px rgba(255,255,255,0.8); }
-        .cell:hover { transform: scale(1.8); z-index: 10; background-color: #dcdcdc; border-radius: 2px; }
-        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(52, 1fr);
+            height: 100%;
+            aspect-ratio: 52 / 80;
+            gap: 2px;
+            width: 100%;
+        }
+
+        .cell {
+            background-color: var(--empty-color);
+            border-radius: 0.5px;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .cell.past {
+            background-color: var(--ink-color);
+        }
+
+        .cell.current {
+            background-color: var(--accent-color);
+            box-shadow: 0 0 8px var(--accent-color);
+            z-index: 2;
+        }
+
+        .cell.milestone {
+            background-color: var(--milestone-color) !important;
+            z-index: 1;
+        }
+
+        .cell.birth {
+            background-color: var(--birth-color) !important;
+            z-index: 3;
+        }
+
+        .cell.selected {
+            z-index: 10;
+            outline: 2px solid #fff;
+            box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        .cell:hover {
+            transform: scale(1.8);
+            z-index: 10;
+            background-color: #dcdcdc;
+            border-radius: 2px;
+        }
+
         /* 侧边栏样式 */
-        h1 { font-size: 2rem; font-weight: 400; letter-spacing: 1px; margin-bottom: 30px; text-transform: uppercase; }
-        .soul-text { font-size: 1rem; line-height: 2; color: #666; margin-bottom: 40px; border-left: 3px solid var(--accent-color); padding-left: 20px; }
-        .soul-text strong.red { color: var(--accent-color); font-weight: 600; }
-        .soul-text strong.black { color: #000; font-weight: 600; }
+        h1 {
+            font-size: 2rem;
+            font-weight: 400;
+            letter-spacing: 1px;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+        }
 
-        .input-group label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 8px; color: #999; font-weight: 600; }
-        input[type="date"] { background: transparent; border: none; border-bottom: 1px solid #ccc; font-size: 1.5rem; color: var(--ink-color); font-family: inherit; cursor: pointer; padding: 5px 0; width: 100%; max-width: 220px; }
-        .stats { margin-top: 20px; font-size: 0.9rem; color: #666; line-height: 1.5; }
+        .soul-text {
+            font-size: 1rem;
+            line-height: 2;
+            color: #666;
+            margin-bottom: 40px;
+            border-left: 3px solid var(--accent-color);
+            padding-left: 20px;
+        }
 
-        .hover-info { height: 30px; margin-top: 15px; font-weight: bold; font-size: 0.9rem; color: var(--accent-color); display: flex; align-items: center; }
-        .hover-info.blue-text { color: var(--milestone-color); }
-        .hover-info.gold-text { color: var(--birth-color); }
+        .soul-text strong.red {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .soul-text strong.black {
+            color: #000;
+            font-weight: 600;
+        }
+
+        .input-group label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        input[type="date"] {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid rgba(74, 64, 54, 0.2);
+            font-size: 1.5rem;
+            color: var(--ink-color);
+            font-family: inherit;
+            cursor: pointer;
+            padding: 5px 0;
+            width: 100%;
+            max-width: 220px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="date"]:hover,
+        input[type="date"]:focus {
+            border-bottom-color: var(--accent-color);
+        }
+
+        .stats {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+
+        color: #666;
+        line-height: 1.5;
+        }
+
+        .hover-info {
+            height: 30px;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .hover-info.blue-text {
+            color: var(--milestone-color);
+        }
+
+        .hover-info.gold-text {
+            color: var(--birth-color);
+        }
 
         /* Login UI */
-        .auth-section { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 20px; opacity: 0.8; transition: opacity 0.3s; }
-        .auth-section:hover { opacity: 1; }
-        .auth-input { padding: 8px; background: transparent; border: 1px solid #ccc; color: var(--ink-color); width: 60%; font-size: 0.85rem; border-radius: 2px; }
-        .auth-btn { background: transparent; color: #999; border: 1px solid #ccc; padding: 8px 12px; cursor: pointer; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; border-radius: 2px; }
-        .logout-btn { background: transparent; border: 1px solid #ccc; color: #999; padding: 4px 10px; cursor: pointer; font-size: 0.7rem; margin-top: 5px; }
+        .auth-section {
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .auth-section:hover {
+            opacity: 1;
+        }
+
+        .auth-input {
+            padding: 8px;
+            background: transparent;
+            border: 1px solid #ccc;
+            color: var(--ink-color);
+            width: 60%;
+            font-size: 0.85rem;
+            border-radius: 2px;
+        }
+
+        .auth-btn {
+            background: transparent;
+            color: #999;
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 2px;
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 1px solid #ccc;
+            color: #999;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            margin-top: 5px;
+        }
 
         /* Share Button */
-        .share-btn-container { margin-top: 20px; }
-        .share-btn {
-            background-color: var(--ink-color); color: #fff; border: none; padding: 10px 20px; border-radius: 4px; font-size: 0.9rem; cursor: pointer;
-            display: flex; align-items: center; gap: 8px; transition: background 0.3s;
+        .share-btn-container {
+            margin-top: 20px;
         }
-        .share-btn:hover { background-color: #34495e; }
-        .share-icon { width: 16px; height: 16px; fill: currentColor; }
+
+        .share-btn {
+            background-color: var(--ink-color);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+        }
+
+        .share-btn:hover {
+            background-color: #34495e;
+        }
+
+        .share-icon {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
 
         /* Hidden Share Card */
-        #share-card-container { position: absolute; top: -9999px; left: -9999px; }
+        #share-card-container {
+            position: absolute;
+            top: -9999px;
+            left: -9999px;
+        }
+
         .share-card {
-            width: 375px; height: 550px; background: linear-gradient(135deg, #1a1a1a, #2c3e50);
-            color: #fff; padding: 40px 30px; display: flex; flex-direction: column; justify-content: space-between;
-            font-family: sans-serif; position: relative; overflow: hidden;
+            width: 375px;
+            height: 550px;
+            background: linear-gradient(135deg, #4a4036, #6d5b4b);
+            color: #fff;
+            padding: 40px 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-family: sans-serif;
+            position: relative;
+            overflow: hidden;
         }
 
         /* Polaroid Share Card */
         .polaroid-card {
-            width: 375px; height: 520px; background: #f7f6f2; color: #111;
+            width: 375px;
+            height: 520px;
+            background: #f7f6f2;
+            color: #111;
             padding: 18px 18px 16px 18px;
-            display: flex; flex-direction: column;
+            display: flex;
+            flex-direction: column;
             font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
             border-radius: 18px;
-            box-shadow: 0 18px 60px rgba(0,0,0,0.25);
+            box-shadow: 0 18px 60px rgba(0, 0, 0, 0.25);
             position: relative;
             overflow: hidden;
         }
+
         .polaroid-photo {
             width: 100%;
             flex: 1;
@@ -104,70 +360,252 @@
             overflow: hidden;
             position: relative;
         }
+
         .polaroid-photo img {
-            width: 100%; height: 100%; object-fit: contain; display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
             background: #e9e7e0;
             image-orientation: from-image;
         }
+
         .polaroid-meta {
             padding: 14px 2px 0 2px;
         }
+
         .polaroid-meta-top {
-            display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
-            font-weight: 700; letter-spacing: 0.2px;
+            display: flex;
+            gap: 10px;
+            align-items: baseline;
+            flex-wrap: wrap;
+            font-weight: 700;
+            letter-spacing: 0.2px;
         }
-        .polaroid-date { font-size: 16px; color: #111; }
-        .polaroid-age { font-size: 16px; color: #c0392b; }
-        .polaroid-note { margin-top: 8px; font-size: 15px; line-height: 1.55; color: #2c3e50; white-space: pre-wrap; word-break: break-word; }
+
+        .polaroid-date {
+            font-size: 16px;
+            color: #111;
+        }
+
+        .polaroid-age {
+            font-size: 16px;
+            color: #c0392b;
+        }
+
+        .polaroid-note {
+            margin-top: 8px;
+            font-size: 15px;
+            line-height: 1.55;
+            color: #2c3e50;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
         .polaroid-watermark {
             margin-top: 12px;
             font-size: 12px;
             letter-spacing: 1px;
-            color: rgba(44,62,80,0.55);
+            color: rgba(44, 62, 80, 0.55);
             text-transform: uppercase;
         }
+
         .polaroid-noimg {
-            width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
-            color: rgba(44,62,80,0.55);
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(44, 62, 80, 0.55);
             font-size: 14px;
         }
-        .share-card::before { content: ''; position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.05); border-radius: 50%; }
-        .card-header { opacity: 0.8; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; display: flex; justify-content: space-between; }
-        .card-main { text-align: center; margin-top: 20px; }
-        .card-percent-container { text-align: center; white-space: nowrap; margin-bottom: 10px; }
-        .card-percent-num { display: inline-block; font-size: 96px; font-weight: 700; color: var(--accent-color); text-shadow: 0 0 20px rgba(192, 57, 43, 0.3); line-height: 1; }
-        .card-percent-unit { display: inline-block; font-size: 40px; font-weight: 700; color: var(--accent-color); opacity: 0.8; margin-left: 15px; vertical-align: baseline; position: relative; top: -5px; }
-        .card-label { font-size: 18px; margin-top: 10px; opacity: 0.9; letter-spacing: 1px; }
-        .card-progress-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-top: 30px; overflow: hidden; }
-        .card-progress-fill { height: 100%; background: var(--accent-color); }
-        .card-footer { margin-top: auto; }
-        .card-quote { font-style: italic; font-size: 15px; line-height: 1.6; opacity: 0.8; margin-bottom: 20px; border-left: 2px solid var(--accent-color); padding-left: 15px; }
-        .card-author { font-size: 12px; opacity: 0.5; text-align: right; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+
+        .share-card::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+        }
+
+        .card-header {
+            opacity: 0.8;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .card-main {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .card-percent-container {
+            text-align: center;
+            white-space: nowrap;
+            margin-bottom: 10px;
+        }
+
+        .card-percent-num {
+            display: inline-block;
+            font-size: 96px;
+            font-weight: 700;
+            color: var(--accent-color);
+            text-shadow: 0 0 20px rgba(192, 57, 43, 0.3);
+            line-height: 1;
+        }
+
+        .card-percent-unit {
+            display: inline-block;
+            font-size: 40px;
+            font-weight: 700;
+            color: var(--accent-color);
+            opacity: 0.8;
+            margin-left: 15px;
+            vertical-align: baseline;
+            position: relative;
+            top: -5px;
+        }
+
+        .card-label {
+            font-size: 18px;
+            margin-top: 10px;
+            opacity: 0.9;
+            letter-spacing: 1px;
+        }
+
+        .card-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-top: 30px;
+            overflow: hidden;
+        }
+
+        .card-progress-fill {
+            height: 100%;
+            background: var(--accent-color);
+        }
+
+        .card-footer {
+            margin-top: auto;
+        }
+
+        .card-quote {
+            font-style: italic;
+            font-size: 15px;
+            line-height: 1.6;
+            opacity: 0.8;
+            margin-bottom: 20px;
+            border-left: 2px solid var(--accent-color);
+            padding-left: 15px;
+        }
+
+        .card-author {
+            font-size: 12px;
+            opacity: 0.5;
+            text-align: right;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
+        }
 
         /* Modal */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
-            z-index: 2000; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
-        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
         .modal-card {
-            background: var(--bg-color); width: 85%; max-width: 400px; padding: 25px;
-            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transform: scale(0.9); transition: transform 0.3s ease;
+            background: var(--bg-color);
+            width: 85%;
+            max-width: 400px;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
         }
-        .modal-overlay.active .modal-card { transform: scale(1); }
-        .modal-title { font-size: 0.9rem; text-transform: uppercase; color: #999; margin-bottom: 15px; font-weight: 600; }
-        .modal-textarea { width: 100%; height: 120px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; resize: none; font-size: 1rem; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
-        .btn { padding: 8px 16px; border-radius: 4px; cursor: pointer; border: none; font-weight: 500; }
-        .btn-cancel { background: transparent; color: #999; }
-        .btn-save { background: var(--ink-color); color: #fff; }
-        
+
+        .modal-overlay.active .modal-card {
+            transform: scale(1);
+        }
+
+        .modal-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            color: #999;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .modal-textarea {
+            width: 100%;
+            height: 120px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            resize: none;
+            font-size: 1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            font-weight: 500;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: #999;
+        }
+
+        .btn-save {
+            background: var(--ink-color);
+            color: #fff;
+        }
+
         /* 修复版删除按钮样式 */
-        .btn-delete { 
-            color: var(--accent-color); background: transparent; margin-right: auto; 
+        .btn-delete {
+            color: var(--accent-color);
+            background: transparent;
+            margin-right: auto;
             transition: all 0.2s ease;
         }
+
         .btn-delete.confirming {
             background-color: var(--accent-color);
             color: white;
@@ -175,112 +613,509 @@
         }
 
         /* Share Result */
-        #shareResultContent { text-align: center; background: transparent; box-shadow: none; padding: 0; }
-        #shareResultImg { max-width: 100%; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); -webkit-user-select: auto !important; user-select: auto !important; -webkit-touch-callout: default !important; }
-        .share-tip { color: #fff; margin-top: 15px; font-size: 0.9rem; opacity: 0.8; }
-        .close-share-btn { margin-top: 20px; padding: 8px 25px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: #fff; border-radius: 20px; cursor: pointer; }
+        #shareResultContent {
+            text-align: center;
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+        }
+
+        #shareResultImg {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            -webkit-user-select: auto !important;
+            user-select: auto !important;
+            -webkit-touch-callout: default !important;
+        }
+
+        .share-tip {
+            color: #fff;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .close-share-btn {
+            margin-top: 20px;
+            padding: 8px 25px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: #fff;
+            border-radius: 20px;
+            cursor: pointer;
+        }
 
         /* Responsive */
-        .mobile-only-auth { display: none; }
-        .mobile-visible { display: none; }
+        .mobile-only-auth {
+            display: none;
+        }
+
+        .mobile-visible {
+            display: none;
+        }
+
         @media (max-width: 768px) {
-            body { display: block; height: auto; min-height: 100vh; overflow-y: scroll; padding: 40px 25px; }
-            .layout { flex-direction: column; width: 100%; height: auto; max-width: 500px; margin: 0 auto; gap: 40px; padding-bottom: 80px; }
-            .sidebar { width: 100%; }
-            .grid-container { display: block; width: 100%; height: auto; }
-            .grid { aspect-ratio: unset; gap: 1px; }
-            .cell { height: 0 !important; padding-bottom: 100%; }
-            .hover-info { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: max-content; background: var(--accent-color); color: #fff; padding: 12px 20px; border-radius: 30px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 9999; }
-            .hover-info:not(:empty) { opacity: 1; }
-            .mobile-hidden { display: none; }
-            .mobile-visible { display: block; }
-            .desktop-only-auth { display: none; }
-            .mobile-only-auth { display: block; margin-top: 40px; text-align: center; }
-            .share-btn-container { display: flex; justify-content: center; margin-bottom: 20px; }
+            body {
+                display: block;
+                height: auto;
+                min-height: 100vh;
+                overflow-y: scroll;
+                padding: 40px 25px;
+            }
+
+            .layout {
+                flex-direction: column;
+                width: 100%;
+                height: auto;
+                max-width: 500px;
+                margin: 0 auto;
+                gap: 40px;
+                padding-bottom: 80px;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .grid-container {
+                display: block;
+                width: 100%;
+                height: auto;
+            }
+
+            .grid {
+                aspect-ratio: unset;
+                gap: 1px;
+            }
+
+            .cell {
+                height: 0 !important;
+                padding-bottom: 100%;
+            }
+
+            .hover-info {
+                position: fixed;
+                bottom: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: max-content;
+                background: var(--accent-color);
+                color: #fff;
+                padding: 12px 20px;
+                border-radius: 30px;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s;
+                z-index: 9999;
+            }
+
+            .hover-info:not(:empty) {
+                opacity: 1;
+            }
+
+            .mobile-hidden {
+                display: none;
+            }
+
+            .mobile-visible {
+                display: block;
+            }
+
+            .desktop-only-auth {
+                display: none;
+            }
+
+            .mobile-only-auth {
+                display: block;
+                margin-top: 40px;
+                text-align: center;
+            }
+
+            .share-btn-container {
+                display: flex;
+                justify-content: center;
+                margin-bottom: 20px;
+            }
         }
 
         /* Upload UI */
-        .modal-image-section { margin-bottom: 20px; }
-        .hidden { display: none !important; }
-        .upload-trigger-btn { width: 100%; padding: 10px; border: 2px dashed #ccc; background: transparent; color: #999; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; transition: all 0.3s; }
-        .upload-trigger-btn:hover { border-color: var(--ink-color); color: var(--ink-color); background: rgba(0,0,0,0.02); }
-        .image-preview-box { position: relative; width: 100%; max-height: 200px; border-radius: 6px; overflow: hidden; background: #f0f0f0; text-align: center; border: 1px solid #ddd; }
-        .image-preview-box img { max-width: 100%; max-height: 200px; object-fit: contain; display: block; margin: 0 auto; }
-        .remove-img-btn { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.6); color: #fff; border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; display: flex; align-items: center; justify-content: center; }
-        .remove-img-btn:hover { background: red; }
+        .modal-image-section {
+            margin-bottom: 20px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .upload-trigger-btn {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #ccc;
+            background: transparent;
+            color: #999;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .upload-trigger-btn:hover {
+            border-color: var(--ink-color);
+            color: var(--ink-color);
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .image-preview-box {
+            position: relative;
+            width: 100%;
+            max-height: 200px;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #f0f0f0;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .image-preview-box img {
+            max-width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .remove-img-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .remove-img-btn:hover {
+            background: red;
+        }
 
         /* Sidebar Projection */
-        .sidebar-image-box { margin-top: 20px; width: 100%; height: 0; padding-bottom: 0; position: relative; opacity: 0; transition: opacity 0.3s ease; overflow: hidden; border-radius: 8px; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .sidebar-image-box.active { height: auto; min-height: 150px; opacity: 1; border: 1px solid #eee; }
-        .sidebar-image-box img { width: 100%; height: auto; display: block; object-fit: cover; }
+        .sidebar-image-box {
+            margin-top: 20px;
+            width: 100%;
+            height: 0;
+            padding-bottom: 0;
+            position: relative;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-image-box.active {
+            height: auto;
+            min-height: 150px;
+            opacity: 1;
+            border: 1px solid #eee;
+        }
+
+        .sidebar-image-box img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
 
         /* Timeline & View Toggle */
-        .header-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .header-group h1 { margin-bottom: 0; }
-        .view-toggle { display: flex; background: #e0e0e0; padding: 3px; border-radius: 8px; }
-        .toggle-btn { background: transparent; border: none; padding: 6px 10px; border-radius: 6px; color: #888; cursor: pointer; display: flex; align-items: center; }
-        .toggle-btn.active { background: #fff; color: var(--ink-color); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        
-        .timeline { width: 100%; height: 100%; overflow-y: auto; padding: 0 10px 50px 10px; scrollbar-width: none; -ms-overflow-style: none; }
-        .timeline::-webkit-scrollbar { display: none; }
-        
-        .timeline-card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); transition: all 0.2s ease; cursor: pointer; border: 1px solid transparent; position: relative; }
-        .timeline-card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.1); }
-        .timeline-share-btn { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 10px; border: 1px solid #eee; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 6px 20px rgba(0,0,0,0.06); }
-        .timeline-share-btn:hover { transform: translateY(-1px); border-color: rgba(0,0,0,0.12); }
-        .timeline-share-btn svg { width: 18px; height: 18px; fill: #2c3e50; opacity: 0.9; }
-        .timeline-meta { display: flex; justify-content: space-between; font-size: 0.75rem; color: #999; margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px dashed #eee; padding-bottom: 8px; }
-        .meta-age { color: var(--accent-color); font-weight: 600; }
-        .timeline-img-box { width: 100%; margin-bottom: 15px; border-radius: 8px; overflow: hidden; background: #f9f9f9; }
-        .timeline-img-box img { width: 100%; height: auto; display: block; object-fit: cover; }
-        .timeline-content { font-size: 1rem; line-height: 1.6; color: var(--ink-color); white-space: pre-wrap; font-family: serif; }
-        .empty-timeline { text-align: center; color: #bbb; margin-top: 50px; font-size: 0.9rem; font-style: italic; }
-        
-        .timeline-year-header { font-size: 1.5rem; font-weight: 800; color: var(--empty-color); text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; margin: 30px 0 15px 0; padding-left: 10px; border-left: 4px solid var(--accent-color); line-height: 1; letter-spacing: -1px; opacity: 0.6; }
-        .timeline-year-header:first-child { margin-top: 10px; }
+        .header-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .header-group h1 {
+            margin-bottom: 0;
+        }
+
+        .view-toggle {
+            display: flex;
+            background: #e0e0e0;
+            padding: 3px;
+            border-radius: 8px;
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            color: #888;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .toggle-btn.active {
+            background: #fff;
+            color: var(--ink-color);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 0 10px 50px 10px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .timeline::-webkit-scrollbar {
+            display: none;
+        }
+
+        .timeline-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        .timeline-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline-share-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            border: 1px solid #eee;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .timeline-share-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(0, 0, 0, 0.12);
+        }
+
+        .timeline-share-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: #2c3e50;
+            opacity: 0.9;
+        }
+
+        .timeline-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #999;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 8px;
+        }
+
+        .meta-age {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .timeline-img-box {
+            width: 100%;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f9f9f9;
+        }
+
+        .timeline-img-box img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+        }
+
+        .timeline-content {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--ink-color);
+            white-space: pre-wrap;
+            font-family: serif;
+        }
+
+        .empty-timeline {
+            text-align: center;
+            color: #bbb;
+            margin-top: 50px;
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+
+        .timeline-year-header {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--empty-color);
+            text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+            margin: 30px 0 15px 0;
+            padding-left: 10px;
+            border-left: 4px solid var(--accent-color);
+            line-height: 1;
+            letter-spacing: -1px;
+            opacity: 0.6;
+        }
+
+        .timeline-year-header:first-child {
+            margin-top: 10px;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            padding: 12px 24px;
+            border-radius: 50px;
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            pointer-events: none;
+            text-align: center;
+            min-width: 200px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            background-color: var(--ink-color);
+        }
+
+        .toast.error {
+            background-color: #c0392b;
+        }
+
+        @media (min-width: 769px) {
+            .toast {
+                bottom: unset;
+                top: 30px;
+            }
+        }
     </style>
 </head>
+
 <body>
     <div class="layout">
         <aside class="sidebar">
             <div class="header-group">
-                <h1>LIFE WEEKS</h1>
+                <h1>Life Grid · 时光绘本</h1>
                 <div class="view-toggle">
                     <button type="button" id="viewGridBtn" class="toggle-btn active" title="Grid View">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
                     </button>
                     <button type="button" id="viewListBtn" class="toggle-btn" title="Timeline View">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
                     </button>
                 </div>
             </div>
-            
+
             <div class="input-group">
-                <label>DATE OF BIRTH</label>
+                <label>你的破壳日 🌱</label>
                 <input type="date" id="birthdate" value="1990-01-01">
             </div>
             <div class="stats" id="stats"></div>
 
             <div class="share-btn-container">
                 <button type="button" class="share-btn" onclick="generateShareCard()">
-                    <svg class="share-icon" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
-                    生成人生进度卡片
+                    <svg class="share-icon" viewBox="0 0 24 24">
+                        <path
+                            d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z" />
+                    </svg>
+                    生成时光卡片
                 </button>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button type="button" class="share-btn" onclick="document.getElementById('import-file').click()"
+                        style="flex: 1; background-color: transparent; color: #999; border: 1px solid #ccc; font-size: 0.8rem; padding: 8px;">
+                        <svg class="share-icon" viewBox="0 0 24 24" style="fill: currentColor">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                        </svg>
+                        找回记忆
+                    </button>
+                    <input type="file" id="import-file" accept=".json" style="display: none;"
+                        onchange="handleImport(this.files[0])">
+                </div>
             </div>
 
             <div class="auth-section desktop-only-auth">
                 <div id="login-form">
-                    <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #999; font-weight: 600;">Cloud Sync</label>
+                    <label
+                        style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #999; font-weight: 600;">云端同步</label>
                     <div style="display: flex; gap: 5px; margin-top: 10px;">
-                        <input type="email" id="email" class="auth-input" placeholder="Enter Email to Sync">
-                        <button type="button" onclick="handleLogin()" id="login-btn-desktop" class="auth-btn">永久备份</button>
+                        <input type="email" id="email" class="auth-input" placeholder="输入邮箱，开启同步">
+                        <button type="button" onclick="handleLogin()" id="login-btn-desktop"
+                            class="auth-btn">开启同步</button>
                     </div>
                 </div>
                 <div id="user-info" style="display: none;">
-                    <span style="color: #666; font-weight: 500; font-size: 0.85rem;"><span style="font-size: 0.5rem; vertical-align: middle; margin-right: 4px;">🟢</span>Cloud Connected</span><br>
-                    <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">Data is safe in Supabase</div>
-                    <button type="button" onclick="openDisplayNameModal(true)" class="logout-btn" style="margin-top:10px;">EDIT NAME</button>
-                    <button type="button" onclick="handleLogout()" class="logout-btn">LOGOUT</button>
+                    <span style="color: #666; font-weight: 500; font-size: 0.85rem;"><span
+                            style="font-size: 0.5rem; vertical-align: middle; margin-right: 4px;">🟢</span>记忆已同步</span><br>
+                    <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">您的回忆已在云端安家</div>
+                    <button type="button" onclick="openDisplayNameModal(true)" class="logout-btn"
+                        style="margin-top:10px;">修改昵称</button>
+                    <button type="button" onclick="handleLogout()" class="logout-btn">退出登录</button>
                 </div>
             </div>
 
@@ -289,39 +1124,43 @@
             </div>
 
             <div class="hover-info" id="hoverInfo"></div>
-            
+
             <div style="margin-top: 30px; font-size: 0.8rem; color: #bbb; text-align: center;">
-                <a href="#" onclick="alert('加微信: muyunlee2025 (备注: LifeGrid)')" style="color: #999; text-decoration: none; border-bottom: 1px dashed #ccc;">Have Feedback?</a>
+                <a href="#" onclick="showToast('加微信: muyunlee2025 (备注: LifeGrid)')"
+                    style="color: #999; text-decoration: none; border-bottom: 1px dashed #ccc;">给作者留言</a>
             </div>
         </aside>
-        
+
         <main class="grid-container">
             <div id="grid" class="grid"></div>
             <div id="timeline" class="timeline hidden"></div>
         </main>
-        
+
         <div class="auth-section mobile-only-auth">
             <div id="login-form-mobile">
-                <label style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #999; font-weight: 600;">Cloud Sync</label>
+                <label
+                    style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: #999; font-weight: 600;">云端同步</label>
                 <div style="display: flex; gap: 5px; margin-top: 10px;">
-                    <input type="email" id="email-mobile" class="auth-input" placeholder="Enter Email to Sync">
-                    <button type="button" onclick="handleLogin(true)" id="login-btn-mobile" class="auth-btn">LOGIN</button>
+                    <input type="email" id="email-mobile" class="auth-input" placeholder="输入邮箱">
+                    <button type="button" onclick="handleLogin(true)" id="login-btn-mobile" class="auth-btn">登录</button>
                 </div>
             </div>
             <div id="user-info-mobile" style="display: none;">
-                <span style="color: #666; font-weight: 500; font-size: 0.85rem;"><span style="font-size: 0.5rem; vertical-align: middle; margin-right: 4px;">🟢</span>Cloud Connected</span><br>
-                <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">Data is safe in Supabase</div>
-                <button type="button" onclick="openDisplayNameModal(true)" class="logout-btn" style="margin-top:10px;">EDIT NAME</button>
-                <button type="button" onclick="handleLogout()" class="logout-btn">LOGOUT</button>
+                <span style="color: #666; font-weight: 500; font-size: 0.85rem;"><span
+                        style="font-size: 0.5rem; vertical-align: middle; margin-right: 4px;">🟢</span>记忆已同步</span><br>
+                <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">您的回忆已在云端安家</div>
+                <button type="button" onclick="openDisplayNameModal(true)" class="logout-btn"
+                    style="margin-top:10px;">修改昵称</button>
+                <button type="button" onclick="handleLogout()" class="logout-btn">退出登录</button>
             </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="noteModal">
         <div class="modal-card">
-            <div class="modal-title" id="modalTitle">Edit Milestone</div>
-            <textarea class="modal-textarea" id="modalInput" placeholder="What happened this week?"></textarea>
-            
+            <div class="modal-title" id="modalTitle">编辑回忆</div>
+            <textarea class="modal-textarea" id="modalInput" placeholder="记录这周的小确幸..."></textarea>
+
             <div class="modal-image-section">
                 <input type="file" id="imageInput" accept="image/png, image/jpeg, image/jpg, image/webp" hidden>
                 <div id="imagePreviewContainer" class="image-preview-box hidden">
@@ -329,15 +1168,19 @@
                     <button type="button" id="removeImageBtn" class="remove-img-btn">×</button>
                 </div>
                 <button type="button" id="uploadTriggerBtn" class="upload-trigger-btn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                    Add Photo
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    添加照片
                 </button>
             </div>
-        
+
             <div class="modal-actions">
-                <button type="button" class="btn btn-delete" onclick="deleteNote()">DELETE</button>
-                <button type="button" class="btn btn-cancel" onclick="closeModal()">CANCEL</button>
-                <button type="button" class="btn btn-save" onclick="saveFromModal()">SAVE</button>
+                <button type="button" class="btn btn-delete" onclick="deleteNote()">删除</button>
+                <button type="button" class="btn btn-cancel" onclick="closeModal()">取消</button>
+                <button type="button" class="btn btn-save" onclick="saveFromModal()">保存回忆</button>
             </div>
         </div>
     </div>
@@ -346,7 +1189,8 @@
         <div class="modal-card" id="shareResultContent">
             <div id="imgContainer"></div>
             <div class="share-tip">长按图片保存，分享到朋友圈 📸</div>
-            <button type="button" class="close-share-btn" onclick="document.getElementById('shareResultModal').classList.remove('active')">关闭</button>
+            <button type="button" class="close-share-btn"
+                onclick="document.getElementById('shareResultModal').classList.remove('active')">关闭</button>
         </div>
     </div>
 
@@ -358,11 +1202,30 @@
                 你的署名会显示在图片水印中：<br>
                 <span style="color:#2c3e50; font-weight:600;">Life Grid - Recorded by 你的署名</span>
             </div>
-            <input id="displayNameInput" type="text" placeholder="例如：Dad / Mom / Jason" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem;" />
-            <div id="displayNameError" style="display:none; margin-top: 10px; color: #c0392b; font-size: 0.85rem;"></div>
+            <input id="displayNameInput" type="text" placeholder="例如：Dad / Mom / Jason"
+                style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem;" />
+            <div id="displayNameError" style="display:none; margin-top: 10px; color: #c0392b; font-size: 0.85rem;">
+            </div>
             <div class="modal-actions">
                 <button type="button" class="btn btn-cancel" onclick="closeDisplayNameModal(false)">暂不分享</button>
-                <button type="button" class="btn btn-save" id="displayNameSaveBtn" onclick="saveDisplayNameFromModal()">保存并分享</button>
+                <button type="button" class="btn btn-save" id="displayNameSaveBtn"
+                    onclick="saveDisplayNameFromModal()">保存并分享</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="modal-overlay" id="logoutModal">
+        <div class="modal-card">
+            <div class="modal-title">确认退出</div>
+            <div style="font-size: 0.95rem; color: #666; line-height: 1.6; margin-bottom: 20px;">
+                确定要退出吗？<br>
+                <span style="font-size: 0.85rem; color: #c0392b;">⚠️ 未登录状态下，退出将导致本地数据清除且无法找回。</span>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel" onclick="closeLogoutModal()">取消</button>
+                <button type="button" class="btn btn-delete" onclick="confirmLogout()"
+                    style="margin-right: 0;">确认退出</button>
             </div>
         </div>
     </div>
@@ -371,9 +1234,12 @@
         <div id="share-card" class="share-card">
             <div class="card-header"><span>Life Grid</span><span class="card-date-text">2026.01.02</span></div>
             <div class="card-main">
-                <div class="card-percent-container"><span class="card-percent-num" id="cardPercentNum">0.0</span><span class="card-percent-unit">%</span></div>
+                <div class="card-percent-container"><span class="card-percent-num" id="cardPercentNum">0.0</span><span
+                        class="card-percent-unit">%</span></div>
                 <div class="card-label">的人生进度条已加载</div>
-                <div class="card-progress-bar"><div class="card-progress-fill" id="cardProgressFill" style="width: 0%;"></div></div>
+                <div class="card-progress-bar">
+                    <div class="card-progress-fill" id="cardProgressFill" style="width: 0%;"></div>
+                </div>
             </div>
             <div class="card-footer">
                 <div class="card-quote">"种一棵树最好的时间是十年前，<br>其次是现在。"</div>
@@ -382,299 +1248,403 @@
         </div>
     </div>
 
-<script>
-    // ================= 配置区 =================
-    const supabaseUrl = 'https://yioysnvcgedsxwkjxejx.supabase.co';
-    const supabaseKey = 'sb_publishable_oK_9EuOCFExUSGw5xLu85w_w377FCp4';
-    const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+    <script>
+        // ================= 配置区 =================
+        const supabaseUrl = 'https://yioysnvcgedsxwkjxejx.supabase.co';
+        const supabaseKey = 'sb_publishable_oK_9EuOCFExUSGw5xLu85w_w377FCp4';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-    // ================= DOM =================
-    const gridEl = document.getElementById('grid');
-    const dateInput = document.getElementById('birthdate');
-    const statsEl = document.getElementById('stats');
-    const hoverInfoEl = document.getElementById('hoverInfo');
-    const loginForm = document.getElementById('login-form');
-    const userInfo = document.getElementById('user-info');
-    const loginFormMobile = document.getElementById('login-form-mobile');
-    const userInfoMobile = document.getElementById('user-info-mobile');
-    
-    // Modal
-    const modal = document.getElementById('noteModal');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalInput = document.getElementById('modalInput');
-    
-    // Timeline
-    const viewGridBtn = document.getElementById('viewGridBtn');
-    const viewListBtn = document.getElementById('viewListBtn');
-    const timelineEl = document.getElementById('timeline');
+        // ================= DOM =================
+        const gridEl = document.getElementById('grid');
+        const dateInput = document.getElementById('birthdate');
+        const statsEl = document.getElementById('stats');
+        const hoverInfoEl = document.getElementById('hoverInfo');
+        const loginForm = document.getElementById('login-form');
+        const userInfo = document.getElementById('user-info');
+        const loginFormMobile = document.getElementById('login-form-mobile');
+        const userInfoMobile = document.getElementById('user-info-mobile');
 
-    // Display Name Modal
-    const displayNameModal = document.getElementById('displayNameModal');
-    const displayNameInput = document.getElementById('displayNameInput');
-    const displayNameError = document.getElementById('displayNameError');
-    const displayNameSaveBtn = document.getElementById('displayNameSaveBtn');
+        // Modal
+        const modal = document.getElementById('noteModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalInput = document.getElementById('modalInput');
 
-    // ================= Globals =================
-    const TOTAL_YEARS = 80;
-    const WEEKS_PER_YEAR = 52;
-    const TOTAL_WEEKS = TOTAL_YEARS * WEEKS_PER_YEAR;
+        // Timeline
+        const viewGridBtn = document.getElementById('viewGridBtn');
+        const viewListBtn = document.getElementById('viewListBtn');
+        const timelineEl = document.getElementById('timeline');
 
-    let milestones = {};       
-    let currentUser = null;    
-    let lastClickedIndex = -1; 
-    let currentLifePercent = 0; 
-    let deleteConfirmTimer = null; // 用于删除按钮的防抖
+        // Display Name Modal
+        const displayNameModal = document.getElementById('displayNameModal');
+        const displayNameInput = document.getElementById('displayNameInput');
+        const displayNameError = document.getElementById('displayNameError');
+        const displayNameSaveBtn = document.getElementById('displayNameSaveBtn');
 
-    // Profile (display name)
-    let currentDisplayName = '';
+        // ================= Globals =================
+        const TOTAL_YEARS = 80;
+        const WEEKS_PER_YEAR = 52;
+        const TOTAL_WEEKS = TOTAL_YEARS * WEEKS_PER_YEAR;
 
-    const CLEAN_URL = window.location.origin + window.location.pathname;
+        let milestones = {};
+        let currentUser = null;
+        let lastClickedIndex = -1;
+        let currentLifePercent = 0;
+        let deleteConfirmTimer = null; // 用于删除按钮的防抖
 
-    // ================= Helpers =================
-    function escapeHtml(text) {
-        if (!text) return text;
-        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-    }
+        // Profile (display name)
+        let currentDisplayName = '';
 
-    function safeJSONParse(key) {
-        try {
-            const item = localStorage.getItem(key);
-            return item ? JSON.parse(item) : {};
-        } catch (e) {
-            console.warn(`Data corrupted for ${key}, resetting.`, e);
-            localStorage.removeItem(key);
-            return {};
+        const CLEAN_URL = window.location.origin + window.location.pathname;
+
+        // ================= Helpers =================
+        function escapeHtml(text) {
+            if (!text) return text;
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
-    }
 
-    async function deleteOldFile(fullUrl) {
-        if (!fullUrl) return;
-        try {
-            const pathParts = fullUrl.split('/milestone-images/');
-            if (pathParts.length > 1) {
-                const relativePath = pathParts[1];
-                await supabaseClient.storage.from('milestone-images').remove([relativePath]);
-                console.log("Deleted orphan file:", relativePath);
+        function safeJSONParse(key) {
+            try {
+                const item = localStorage.getItem(key);
+                return item ? JSON.parse(item) : {};
+            } catch (e) {
+                console.warn(`Data corrupted for ${key}, resetting.`, e);
+                localStorage.removeItem(key);
+                return {};
             }
-        } catch (e) {
-            console.error("Failed to delete old file:", e);
         }
-    }
 
-    // ================= Auth & Data Logic =================
-    async function loadUserProfile() {
-        if (!currentUser) {
-            currentDisplayName = '';
-            return;
+        function showToast(message, type = 'success') {
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) existingToast.remove();
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            // Trigger reflow
+            toast.offsetHeight;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
-        try {
-            const { data, error, status } = await supabaseClient
-                .from('profiles')
-                .select(`display_name`)
-                .eq('id', currentUser.id)
-                .single();
 
-            if (error && status !== 406) throw error;
+        async function handleImport(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    let importedData;
+                    try {
+                        importedData = JSON.parse(e.target.result);
+                    } catch (parseErr) {
+                        throw new Error("JSON Parse Error");
+                    }
 
-            if (data) currentDisplayName = data.display_name;
-            else currentDisplayName = '';
-        } catch (error) {
-            console.error('Error loading user profile:', error.message);
-            currentDisplayName = '';
-        }
-    }
+                    // Validate: should be object and not null
+                    if (typeof importedData !== 'object' || importedData === null) throw new Error("Invalid format: Not an object");
 
-    async function updateUserProfile(displayName) {
-        if (!currentUser) return false;
-        try {
-            const { error } = await supabaseClient.from('profiles').upsert({
-                id: currentUser.id,
-                display_name: displayName,
-                updated_at: new Date().toISOString(),
-            }, { onConflict: 'id' });
+                    // Validate content: checks if at least one valid key exists
+                    let validEntries = 0;
+                    for (const [key, val] of Object.entries(importedData)) {
+                        const index = parseInt(key);
+                        if (!isNaN(index) && index >= 0 && index < TOTAL_WEEKS && val && (typeof val.content === 'string' || val.image_url)) {
+                            validEntries++;
+                        }
+                    }
 
-            if (error) throw error;
-            currentDisplayName = displayName;
-            return true;
-        } catch (error) {
-            console.error('Error updating profile:', error.message);
-            alert('Could not save your name. Please try again.');
-            return false;
-        }
-    }
+                    if (validEntries === 0) throw new Error("No valid memory records found");
 
-    supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') window.history.replaceState({}, document.title, CLEAN_URL);
-        if (session) {
-            currentUser = session.user;
-            updateAuthUI(true);
-            await syncAndLoadData();
-        } else {
-            currentUser = null;
-            updateAuthUI(false);
-            loadLocalOnly();
-        }
-    });
+                    // Smart Merge: Overwrite local with imported
+                    let count = 0;
+                    for (const [key, val] of Object.entries(importedData)) {
+                        if (val && (val.content || val.image_url)) {
+                            milestones[key] = val;
+                            count++;
+                        }
+                    }
 
-    async function syncAndLoadData() {
-        try {
-            await loadUserProfile();
-            let localData = safeJSONParse('lifeGridMilestones');
-            for (let key in localData) {
-                if (typeof localData[key] === 'string') localData[key] = { content: localData[key], image_url: null };
-            }
+                    localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
 
-            const { data: cloudData, error } = await supabaseClient.from('test_milestones').select('week_index, content, image_url');
-            if (error) throw error;
+                    // If logged in, sync to cloud
+                    if (currentUser) {
+                        const updates = [];
+                        for (const [key, val] of Object.entries(importedData)) {
+                            if (val && (val.content || val.image_url)) {
+                                updates.push({
+                                    user_id: currentUser.id,
+                                    week_index: parseInt(key),
+                                    content: val.content,
+                                    image_url: val.image_url
+                                });
+                            }
+                        }
+                        if (updates.length > 0) {
+                            // Batch upsert might be limited, but Supabase handles reasonably sized batches. 
+                            // For safety in this simpler app, we just send it.
+                            await supabaseClient.from('test_milestones').upsert(updates, { onConflict: 'user_id, week_index' });
+                        }
+                    }
 
-            const cloudMap = new Map();
-            cloudData.forEach(row => cloudMap.set(row.week_index, { content: row.content, image_url: row.image_url }));
-
-            const updatesToUpload = [];
-            for (const [key, localVal] of Object.entries(localData)) {
-                const weekIdx = parseInt(key);
-                if (!cloudMap.has(weekIdx) && (localVal.content || localVal.image_url)) {
-                    updatesToUpload.push({ user_id: currentUser.id, week_index: weekIdx, content: localVal.content, image_url: localVal.image_url });
+                    renderGrid();
+                    if (!timelineEl.classList.contains('hidden')) renderTimeline();
+                    showToast(`✅ 成功找回了 ${count} 段回忆！`);
+                } catch (err) {
+                    console.error(err);
+                    let msg = "❌ 导入失败：文件格式不对哦";
+                    if (err.message === "No valid memory records found") msg = "❌ 导入失败：没找到有效的记忆记录";
+                    showToast(msg, 'error');
                 }
-            }
+                // Reset input
+                document.getElementById('import-file').value = '';
+            };
+            reader.readAsText(file);
+        }
 
-            if (updatesToUpload.length > 0) {
-                await supabaseClient.from('test_milestones').upsert(updatesToUpload, { onConflict: 'user_id, week_index' });
-                updatesToUpload.forEach(item => cloudMap.set(item.week_index, { content: item.content, image_url: item.image_url }));
+        async function deleteOldFile(fullUrl) {
+            if (!fullUrl) return;
+            try {
+                const pathParts = fullUrl.split('/milestone-images/');
+                if (pathParts.length > 1) {
+                    const relativePath = pathParts[1];
+                    await supabaseClient.storage.from('milestone-images').remove([relativePath]);
+                    console.log("Deleted orphan file:", relativePath);
+                }
+            } catch (e) {
+                console.error("Failed to delete old file:", e);
             }
+        }
 
-            milestones = {};
-            for (const [weekIdx, data] of cloudMap.entries()) milestones[weekIdx] = data; 
+        // ================= Auth & Data Logic =================
+        async function loadUserProfile() {
+            if (!currentUser) {
+                currentDisplayName = '';
+                return;
+            }
+            try {
+                const { data, error, status } = await supabaseClient
+                    .from('profiles')
+                    .select(`display_name`)
+                    .eq('id', currentUser.id)
+                    .single();
+
+                if (error && status !== 406) throw error;
+
+                if (data) currentDisplayName = data.display_name;
+                else currentDisplayName = '';
+            } catch (error) {
+                console.error('Error loading user profile:', error.message);
+                currentDisplayName = '';
+            }
+        }
+
+        async function updateUserProfile(displayName) {
+            if (!currentUser) return false;
+            try {
+                const { error } = await supabaseClient.from('profiles').upsert({
+                    id: currentUser.id,
+                    display_name: displayName,
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'id' });
+
+                if (error) throw error;
+                currentDisplayName = displayName;
+                return true;
+            } catch (error) {
+                console.error('Error updating profile:', error.message);
+                showToast('昵称保存失败，再试一次吧', 'error');
+                return false;
+            }
+        }
+
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') window.history.replaceState({}, document.title, CLEAN_URL);
+            if (session) {
+                currentUser = session.user;
+                updateAuthUI(true);
+                await syncAndLoadData();
+            } else {
+                currentUser = null;
+                updateAuthUI(false);
+                loadLocalOnly();
+            }
+        });
+
+        async function syncAndLoadData() {
+            try {
+                await loadUserProfile();
+                let localData = safeJSONParse('lifeGridMilestones');
+                for (let key in localData) {
+                    if (typeof localData[key] === 'string') localData[key] = { content: localData[key], image_url: null };
+                }
+
+                const { data: cloudData, error } = await supabaseClient.from('test_milestones').select('week_index, content, image_url');
+                if (error) throw error;
+
+                const cloudMap = new Map();
+                cloudData.forEach(row => cloudMap.set(row.week_index, { content: row.content, image_url: row.image_url }));
+
+                const updatesToUpload = [];
+                for (const [key, localVal] of Object.entries(localData)) {
+                    const weekIdx = parseInt(key);
+                    if (!cloudMap.has(weekIdx) && (localVal.content || localVal.image_url)) {
+                        updatesToUpload.push({ user_id: currentUser.id, week_index: weekIdx, content: localVal.content, image_url: localVal.image_url });
+                    }
+                }
+
+                if (updatesToUpload.length > 0) {
+                    await supabaseClient.from('test_milestones').upsert(updatesToUpload, { onConflict: 'user_id, week_index' });
+                    updatesToUpload.forEach(item => cloudMap.set(item.week_index, { content: item.content, image_url: item.image_url }));
+                }
+
+                milestones = {};
+                for (const [weekIdx, data] of cloudMap.entries()) milestones[weekIdx] = data;
+
+                localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
+                renderGrid();
+
+            } catch (err) {
+                console.error("Sync Critical Error:", err);
+                loadLocalOnly();
+            }
+        }
+
+        function loadLocalOnly() {
+            milestones = safeJSONParse('lifeGridMilestones');
+            renderGrid();
+        }
+
+        async function handleLogin(isMobile = false) {
+            const emailId = isMobile ? 'email-mobile' : 'email';
+            const btnId = isMobile ? 'login-btn-mobile' : 'login-btn-desktop';
+            const email = document.getElementById(emailId).value.trim();
+            const loginBtn = document.getElementById(btnId);
+            const originalText = loginBtn.textContent;
+
+            if (!email) { loginBtn.textContent = '请输入邮箱'; setTimeout(() => { loginBtn.textContent = originalText; }, 2000); return; }
+            loginBtn.disabled = true; loginBtn.textContent = '发送中...';
+
+            try {
+                const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: CLEAN_URL } });
+                if (error) throw error;
+                showToast('✨ 魔法邮件已发送，快去查收吧！'); loginBtn.textContent = '✅ 已发送';
+            } catch (error) { console.error('Login error:', error.message); loginBtn.textContent = '❌ 失败'; }
+            finally { setTimeout(() => { loginBtn.disabled = false; loginBtn.textContent = originalText; }, 2500); }
+        }
+
+        function handleLogout() {
+            const logoutModal = document.getElementById('logoutModal');
+            if (logoutModal) logoutModal.classList.add('active');
+        }
+
+        function closeLogoutModal() {
+            const logoutModal = document.getElementById('logoutModal');
+            if (logoutModal) logoutModal.classList.remove('active');
+        }
+
+        async function confirmLogout() {
+            closeLogoutModal();
+            showToast('正在退出...', 'success');
+            await supabaseClient.auth.signOut();
+            localStorage.removeItem('lifeGridMilestones');
+            // Give a small delay to see the toast
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        }
+
+        async function saveMilestone(index, content, imageUrl = null) {
+            if (!content && !imageUrl) delete milestones[index];
+            else milestones[index] = { content, image_url: imageUrl };
 
             localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
             renderGrid();
-            
-        } catch (err) {
-            console.error("Sync Critical Error:", err);
-            loadLocalOnly();
-        }
-    }
 
-    function loadLocalOnly() {
-        milestones = safeJSONParse('lifeGridMilestones');
-        renderGrid();
-    }
-
-    async function handleLogin(isMobile = false) {
-        const emailId = isMobile ? 'email-mobile' : 'email';
-        const btnId = isMobile ? 'login-btn-mobile' : 'login-btn-desktop';
-        const email = document.getElementById(emailId).value.trim();
-        const loginBtn = document.getElementById(btnId);
-        const originalText = loginBtn.textContent;
-
-        if (!email) { loginBtn.textContent = '请输入邮箱'; setTimeout(() => { loginBtn.textContent = originalText; }, 2000); return; }
-        loginBtn.disabled = true; loginBtn.textContent = '发送中...';
-
-        try {
-            const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { emailRedirectTo: CLEAN_URL } });
-            if (error) throw error;
-            alert('✨ 登录邮件已发送，请查收邮箱！'); loginBtn.textContent = '✅ 已发送';
-        } catch (error) { console.error('Login error:', error.message); loginBtn.textContent = '❌ 失败'; } 
-        finally { setTimeout(() => { loginBtn.disabled = false; loginBtn.textContent = originalText; }, 2500); }
-    }
-
-    async function handleLogout() {
-        // 使用原生 confirm 是 OK 的，因为这里不涉及复杂图层叠加
-        if (!confirm("确定退出登录？本地数据将清除。")) return;
-        await supabaseClient.auth.signOut();
-        localStorage.removeItem('lifeGridMilestones'); 
-        window.location.reload(); 
-    }
-
-    async function saveMilestone(index, content, imageUrl = null) {
-        if (!content && !imageUrl) delete milestones[index];
-        else milestones[index] = { content, image_url: imageUrl };
-        
-        localStorage.setItem('lifeGridMilestones', JSON.stringify(milestones));
-        renderGrid();
-
-        if (currentUser) {
-            try {
-                if (!content && !imageUrl) {
-                    await supabaseClient.from('test_milestones')
-                        .delete()
-                        .eq('week_index', index)
-                        .eq('user_id', currentUser.id);
-                } else {
-                    await supabaseClient.from('test_milestones').upsert({
-                        user_id: currentUser.id, week_index: index, content: content, image_url: imageUrl
-                    }, { onConflict: 'user_id, week_index' });
-                }
-            } catch (e) { console.error("Cloud save failed:", e); }
-        }
-        
-        if (timelineEl && !timelineEl.classList.contains('hidden')) renderTimeline();
-    }
-
-    function updateAuthUI(isLoggedIn) {
-        const displays = isLoggedIn ? ['none', 'block'] : ['block', 'none'];
-        [loginForm, loginFormMobile].forEach(el => { if(el) el.style.display = displays[0]; });
-        [userInfo, userInfoMobile].forEach(el => { if(el) el.style.display = displays[1]; });
-    }
-
-    // ================= Timeline Logic =================
-    function switchView(viewName) {
-        if (viewName === 'grid') {
-            gridEl.classList.remove('hidden'); timelineEl.classList.add('hidden');
-            viewGridBtn.classList.add('active'); viewListBtn.classList.remove('active');
-        } else {
-            gridEl.classList.add('hidden'); timelineEl.classList.remove('hidden');
-            viewGridBtn.classList.remove('active'); viewListBtn.classList.add('active');
-            renderTimeline(); 
-        }
-    }
-    if(viewGridBtn) viewGridBtn.addEventListener('click', () => switchView('grid'));
-    if(viewListBtn) viewListBtn.addEventListener('click', () => switchView('list'));
-
-    function renderTimeline() {
-        timelineEl.innerHTML = '';
-        const birthdate = new Date(dateInput.value);
-        
-        const timelineData = Object.keys(milestones).map(key => {
-            const i = parseInt(key);
-            let note = null, imageUrl = null;
-            const raw = milestones[i];
-            if (typeof raw === 'string') note = raw;
-            else { note = raw.content; imageUrl = raw.image_url; }
-            return { index: i, note, imageUrl, raw };
-        }).filter(item => item.note || item.imageUrl).sort((a, b) => b.index - a.index); 
-
-        if (timelineData.length === 0) { timelineEl.innerHTML = '<div class="empty-timeline">还没有记录。<br>去格子里点亮你的第一个瞬间吧。</div>'; return; }
-
-        const frag = document.createDocumentFragment();
-        let lastYear = null;
-
-        timelineData.forEach(item => {
-            const age = Math.floor(item.index / WEEKS_PER_YEAR);
-            const date = new Date(birthdate);
-            date.setDate(date.getDate() + item.index * 7);
-            const dateStr = date.toLocaleDateString();
-            const currentYear = date.getFullYear();
-
-            if (currentYear !== lastYear) {
-                const yearHeader = document.createElement('div');
-                yearHeader.className = 'timeline-year-header';
-                yearHeader.textContent = currentYear;
-                frag.appendChild(yearHeader);
-                lastYear = currentYear;
+            if (currentUser) {
+                try {
+                    if (!content && !imageUrl) {
+                        await supabaseClient.from('test_milestones')
+                            .delete()
+                            .eq('week_index', index)
+                            .eq('user_id', currentUser.id);
+                    } else {
+                        await supabaseClient.from('test_milestones').upsert({
+                            user_id: currentUser.id, week_index: index, content: content, image_url: imageUrl
+                        }, { onConflict: 'user_id, week_index' });
+                    }
+                } catch (e) { console.error("Cloud save failed:", e); }
             }
 
-            const card = document.createElement('div');
-            card.className = 'timeline-card';
-            card.onclick = () => openModal(item.index, item.raw, age);
+            if (timelineEl && !timelineEl.classList.contains('hidden')) renderTimeline();
+        }
 
-            let imgHtml = item.imageUrl ? `<div class="timeline-img-box"><img src="${item.imageUrl}" loading="lazy"></div>` : '';
-            let contentHtml = item.note ? `<div class="timeline-content">${escapeHtml(item.note)}</div>` : '';
+        function updateAuthUI(isLoggedIn) {
+            const displays = isLoggedIn ? ['none', 'block'] : ['block', 'none'];
+            [loginForm, loginFormMobile].forEach(el => { if (el) el.style.display = displays[0]; });
+            [userInfo, userInfoMobile].forEach(el => { if (el) el.style.display = displays[1]; });
+        }
 
-            const safeNote = item.note ? escapeHtml(item.note) : '';
-            const safeImg = item.imageUrl ? item.imageUrl : '';
+        // ================= Timeline Logic =================
+        function switchView(viewName) {
+            if (viewName === 'grid') {
+                gridEl.classList.remove('hidden'); timelineEl.classList.add('hidden');
+                viewGridBtn.classList.add('active'); viewListBtn.classList.remove('active');
+            } else {
+                gridEl.classList.add('hidden'); timelineEl.classList.remove('hidden');
+                viewGridBtn.classList.remove('active'); viewListBtn.classList.add('active');
+                renderTimeline();
+            }
+        }
+        if (viewGridBtn) viewGridBtn.addEventListener('click', () => switchView('grid'));
+        if (viewListBtn) viewListBtn.addEventListener('click', () => switchView('list'));
 
-            card.innerHTML = `
+        function renderTimeline() {
+            timelineEl.innerHTML = '';
+            const birthdate = new Date(dateInput.value);
+
+            const timelineData = Object.keys(milestones).map(key => {
+                const i = parseInt(key);
+                let note = null, imageUrl = null;
+                const raw = milestones[i];
+                if (typeof raw === 'string') note = raw;
+                else { note = raw.content; imageUrl = raw.image_url; }
+                return { index: i, note, imageUrl, raw };
+            }).filter(item => item.note || item.imageUrl).sort((a, b) => b.index - a.index);
+
+            if (timelineData.length === 0) { timelineEl.innerHTML = '<div class="empty-timeline">还没有记录。<br>去格子里点亮你的第一个瞬间吧 ✨</div>'; return; }
+
+            const frag = document.createDocumentFragment();
+            let lastYear = null;
+
+            timelineData.forEach(item => {
+                const age = Math.floor(item.index / WEEKS_PER_YEAR);
+                const date = new Date(birthdate);
+                date.setDate(date.getDate() + item.index * 7);
+                const dateStr = date.toLocaleDateString();
+                const currentYear = date.getFullYear();
+
+                if (currentYear !== lastYear) {
+                    const yearHeader = document.createElement('div');
+                    yearHeader.className = 'timeline-year-header';
+                    yearHeader.textContent = currentYear;
+                    frag.appendChild(yearHeader);
+                    lastYear = currentYear;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'timeline-card';
+                card.onclick = () => openModal(item.index, item.raw, age);
+
+                let imgHtml = item.imageUrl ? `<div class="timeline-img-box"><img src="${item.imageUrl}" loading="lazy"></div>` : '';
+                let contentHtml = item.note ? `<div class="timeline-content">${escapeHtml(item.note)}</div>` : '';
+
+                const safeNote = item.note ? escapeHtml(item.note) : '';
+                const safeImg = item.imageUrl ? item.imageUrl : '';
+
+                card.innerHTML = `
                 <button type="button" class="timeline-share-btn" title="Share" aria-label="Share">
                     <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>
                 </button>
@@ -683,387 +1653,387 @@
                 ${contentHtml}
             `;
 
-            const shareBtn = card.querySelector('.timeline-share-btn');
-            shareBtn.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                generatePolaroidShareCard({
-                    dateStrISO: formatDateISO(date),
-                    age,
-                    note: safeNote,
-                    imageUrl: safeImg,
+                const shareBtn = card.querySelector('.timeline-share-btn');
+                shareBtn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    generatePolaroidShareCard({
+                        dateStrISO: formatDateISO(date),
+                        age,
+                        note: safeNote,
+                        imageUrl: safeImg,
+                    });
                 });
+
+                frag.appendChild(card);
             });
+            timelineEl.appendChild(frag);
+        }
 
-            frag.appendChild(card);
+        // ================= Modal & Image Logic =================
+        let currentEditingIndex = -1;
+        let currentTempImageFile = null;
+        let currentExistingImageUrl = null;
+        let originalCloudUrl = null;
+
+        const imageInput = document.getElementById('imageInput');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const uploadTriggerBtn = document.getElementById('uploadTriggerBtn');
+        const removeImageBtn = document.getElementById('removeImageBtn');
+
+        function openModal(index, data, age) {
+            currentEditingIndex = index;
+            currentTempImageFile = null;
+
+            // 每次打开时，重置删除按钮状态
+            resetDeleteBtn();
+
+            let content = '';
+            let imageUrl = null;
+
+            if (data) {
+                if (typeof data === 'string') content = data;
+                else {
+                    content = data.content || '';
+                    imageUrl = data.image_url || null;
+                }
+            }
+            currentExistingImageUrl = imageUrl;
+            originalCloudUrl = imageUrl;
+
+            modalInput.value = content;
+            if (index === 0) modalTitle.textContent = "👶 一切的开始";
+            else if (data) modalTitle.textContent = `📝 编辑回忆 (Age ${age})`;
+            else modalTitle.textContent = `✨ 记录此刻 (Age ${age})`;
+
+            if (imageUrl) showPreview(imageUrl); else resetPreview();
+            modal.classList.add('active');
+            if (!imageUrl) setTimeout(() => modalInput.focus(), 100);
+        }
+
+        function closeModal() { modal.classList.remove('active'); modalInput.blur(); resetDeleteBtn(); }
+        uploadTriggerBtn.addEventListener('click', () => imageInput.click());
+
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (!file.type.match(/^image\/(jpeg|png|gif|webp)$/)) {
+                showToast("只支持 JPG/PNG/GIF 哦", "error");
+                return;
+            }
+
+            currentTempImageFile = file;
+            const localUrl = URL.createObjectURL(file);
+            showPreview(localUrl);
         });
-        timelineEl.appendChild(frag);
-    }
 
-    // ================= Modal & Image Logic =================
-    let currentEditingIndex = -1; 
-    let currentTempImageFile = null; 
-    let currentExistingImageUrl = null; 
-    let originalCloudUrl = null;        
-
-    const imageInput = document.getElementById('imageInput');
-    const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-    const imagePreview = document.getElementById('imagePreview');
-    const uploadTriggerBtn = document.getElementById('uploadTriggerBtn');
-    const removeImageBtn = document.getElementById('removeImageBtn');
-
-    function openModal(index, data, age) {
-        currentEditingIndex = index;
-        currentTempImageFile = null;
-        
-        // 每次打开时，重置删除按钮状态
-        resetDeleteBtn();
-
-        let content = '';
-        let imageUrl = null;
-        
-        if (data) {
-            if (typeof data === 'string') content = data;
-            else {
-                content = data.content || '';
-                imageUrl = data.image_url || null;
-            }
-        }
-        currentExistingImageUrl = imageUrl;
-        originalCloudUrl = imageUrl; 
-
-        modalInput.value = content;
-        if (index === 0) modalTitle.textContent = "👶 The Beginning";
-        else if (data) modalTitle.textContent = `📝 Edit Memory (Age ${age})`;
-        else modalTitle.textContent = `✨ New Memory (Age ${age})`;
-
-        if (imageUrl) showPreview(imageUrl); else resetPreview();
-        modal.classList.add('active');
-        if(!imageUrl) setTimeout(() => modalInput.focus(), 100); 
-    }
-
-    function closeModal() { modal.classList.remove('active'); modalInput.blur(); resetDeleteBtn(); }
-    uploadTriggerBtn.addEventListener('click', () => imageInput.click());
-    
-    imageInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        if (!file.type.match(/^image\/(jpeg|png|gif|webp)$/)) {
-            alert("Only JPG, PNG, GIF, WEBP allowed.");
-            return;
+        function showPreview(url) {
+            imagePreview.src = url;
+            imagePreviewContainer.classList.remove('hidden');
+            uploadTriggerBtn.classList.add('hidden');
         }
 
-        currentTempImageFile = file;
-        const localUrl = URL.createObjectURL(file); 
-        showPreview(localUrl);
-    });
+        function resetPreview() {
+            imagePreview.src = '';
+            imagePreviewContainer.classList.add('hidden');
+            uploadTriggerBtn.classList.remove('hidden');
+            imageInput.value = '';
+            currentTempImageFile = null;
+            currentExistingImageUrl = null;
+        }
 
-    function showPreview(url) {
-        imagePreview.src = url;
-        imagePreviewContainer.classList.remove('hidden');
-        uploadTriggerBtn.classList.add('hidden');
-    }
+        removeImageBtn.addEventListener('click', (e) => { e.stopPropagation(); resetPreview(); });
 
-    function resetPreview() {
-        imagePreview.src = '';
-        imagePreviewContainer.classList.add('hidden');
-        uploadTriggerBtn.classList.remove('hidden');
-        imageInput.value = ''; 
-        currentTempImageFile = null;
-        currentExistingImageUrl = null; 
-    }
+        async function saveFromModal() {
+            if (currentEditingIndex === -1) return;
+            const content = modalInput.value.trim();
+            const saveBtn = document.querySelector('.btn-save');
+            const originalText = saveBtn.textContent;
 
-    removeImageBtn.addEventListener('click', (e) => { e.stopPropagation(); resetPreview(); });
+            let finalImageUrl = currentExistingImageUrl;
 
-    async function saveFromModal() {
-        if (currentEditingIndex === -1) return;
-        const content = modalInput.value.trim();
-        const saveBtn = document.querySelector('.btn-save');
-        const originalText = saveBtn.textContent;
-
-        let finalImageUrl = currentExistingImageUrl;
-
-        if (currentTempImageFile && currentUser) {
-            saveBtn.textContent = "Uploading..."; saveBtn.disabled = true;
-            try {
-                const fileExt = currentTempImageFile.name.split('.').pop();
-                const fileName = `${currentUser.id}/${currentEditingIndex}_${Date.now()}.${fileExt}`;
-                const { data, error } = await supabaseClient.storage.from('milestone-images').upload(fileName, currentTempImageFile);
-                if (error) throw error;
-                const { data: { publicUrl } } = supabaseClient.storage.from('milestone-images').getPublicUrl(fileName);
-                finalImageUrl = publicUrl;
-            } catch (err) {
-                console.error("Upload failed:", err);
-                alert("Upload failed. Text saved, image skipped.");
+            if (currentTempImageFile && currentUser) {
+                saveBtn.textContent = "上传中..."; saveBtn.disabled = true;
+                try {
+                    const fileExt = currentTempImageFile.name.split('.').pop();
+                    const fileName = `${currentUser.id}/${currentEditingIndex}_${Date.now()}.${fileExt}`;
+                    const { data, error } = await supabaseClient.storage.from('milestone-images').upload(fileName, currentTempImageFile);
+                    if (error) throw error;
+                    const { data: { publicUrl } } = supabaseClient.storage.from('milestone-images').getPublicUrl(fileName);
+                    finalImageUrl = publicUrl;
+                } catch (err) {
+                    console.error("Upload failed:", err);
+                    showToast("上传失败了，文字已保存", "error");
+                    finalImageUrl = null;
+                } finally {
+                    saveBtn.textContent = originalText; saveBtn.disabled = false;
+                }
+            } else if (currentTempImageFile && !currentUser) {
+                showToast("请先登录，才能珍藏图片哦 (文字已保存)", "error");
                 finalImageUrl = null;
-            } finally {
-                saveBtn.textContent = originalText; saveBtn.disabled = false;
             }
-        } else if (currentTempImageFile && !currentUser) {
-            alert("Please Login to upload images! (Saving text only)");
-            finalImageUrl = null;
-        }
 
-        if (originalCloudUrl && originalCloudUrl !== finalImageUrl) {
-            deleteOldFile(originalCloudUrl); 
-        }
+            if (originalCloudUrl && originalCloudUrl !== finalImageUrl) {
+                deleteOldFile(originalCloudUrl);
+            }
 
-        await saveMilestone(currentEditingIndex, content, finalImageUrl);
-        closeModal();
-    }
-
-    // 【核心修复】重写的删除逻辑：无原生弹窗，双击确认
-    function deleteNote() {
-        if (currentEditingIndex === -1) return;
-        
-        const delBtn = document.querySelector('.btn-delete');
-        
-        // 第一次点击：变色提示
-        if (!delBtn.classList.contains('confirming')) {
-            delBtn.classList.add('confirming');
-            delBtn.textContent = "SURE?";
-            
-            // 3秒后自动恢复
-            deleteConfirmTimer = setTimeout(() => {
-                resetDeleteBtn();
-            }, 3000);
-        } else {
-            // 第二次点击：执行删除
-            if (originalCloudUrl) deleteOldFile(originalCloudUrl);
-            saveMilestone(currentEditingIndex, null, null);
+            await saveMilestone(currentEditingIndex, content, finalImageUrl);
             closeModal();
         }
-    }
 
-    function resetDeleteBtn() {
-        const delBtn = document.querySelector('.btn-delete');
-        if (delBtn) {
-            delBtn.classList.remove('confirming');
-            delBtn.textContent = "DELETE";
-        }
-        if (deleteConfirmTimer) clearTimeout(deleteConfirmTimer);
-    }
-    
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        // 【核心修复】重写的删除逻辑：无原生弹窗，双击确认
+        function deleteNote() {
+            if (currentEditingIndex === -1) return;
 
-    // ================= Share =================
-    function generateShareCard() {
-        document.getElementById('cardPercentNum').textContent = currentLifePercent;
-        document.getElementById('cardProgressFill').style.width = currentLifePercent + '%';
-        document.querySelector('.card-date-text').textContent = new Date().toLocaleDateString();
+            const delBtn = document.querySelector('.btn-delete');
 
-        html2canvas(document.getElementById('share-card'), { scale: 2, backgroundColor: null }).then(canvas => {
-            const imgContainer = document.getElementById('imgContainer');
-            imgContainer.innerHTML = '';
-            const img = document.createElement('img');
-            img.src = canvas.toDataURL('image/png');
-            img.id = 'shareResultImg';
-            imgContainer.appendChild(img);
-            document.getElementById('shareResultModal').classList.add('active');
-        });
-    }
+            // 第一次点击：变色提示
+            if (!delBtn.classList.contains('confirming')) {
+                delBtn.classList.add('confirming');
+                delBtn.textContent = "确认删除?";
 
-    function formatDateISO(d) {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}.${m}.${day}`;
-    }
-
-    function applyExifOrientationTransform(ctx, orientation, w, h) {
-        // orientation: 1..8
-        switch (orientation) {
-            case 2: // mirror horizontal
-                ctx.translate(w, 0);
-                ctx.scale(-1, 1);
-                break;
-            case 3: // rotate 180
-                ctx.translate(w, h);
-                ctx.rotate(Math.PI);
-                break;
-            case 4: // mirror vertical
-                ctx.translate(0, h);
-                ctx.scale(1, -1);
-                break;
-            case 5: // mirror vertical + rotate 90 CW
-                ctx.rotate(0.5 * Math.PI);
-                ctx.scale(1, -1);
-                break;
-            case 6: // rotate 90 CW
-                ctx.rotate(0.5 * Math.PI);
-                ctx.translate(0, -h);
-                break;
-            case 7: // mirror vertical + rotate 90 CCW
-                ctx.rotate(-0.5 * Math.PI);
-                ctx.translate(-w, 0);
-                ctx.scale(1, -1);
-                break;
-            case 8: // rotate 90 CCW
-                ctx.rotate(-0.5 * Math.PI);
-                ctx.translate(-w, 0);
-                break;
-            default:
-                break;
-        }
-    }
-
-    async function loadAndNormalizeImageBitmap(imageUrl) {
-        // Fetch once, decode once, return a bitmap + intrinsic size.
-        // Note: EXIF orientation mainly affects JPEG; for safety we still try to read it.
-        // Returns: { bitmap, w, h, orientation, source } where source indicates decode path.
-        const resp = await fetch(imageUrl, { mode: 'cors', cache: 'force-cache' });
-        if (!resp.ok) throw new Error('Image fetch failed: ' + resp.status);
-        const blob = await resp.blob();
-
-        const orientation = await new Promise((resolve) => {
-            if (!window.EXIF) return resolve(1);
-            try {
-                EXIF.getData(blob, function () {
-                    const o = EXIF.getTag(this, 'Orientation');
-                    resolve(o || 1);
-                });
-            } catch (e) {
-                resolve(1);
+                // 3秒后自动恢复
+                deleteConfirmTimer = setTimeout(() => {
+                    resetDeleteBtn();
+                }, 3000);
+            } else {
+                // 第二次点击：执行删除
+                if (originalCloudUrl) deleteOldFile(originalCloudUrl);
+                saveMilestone(currentEditingIndex, null, null);
+                closeModal();
             }
-        });
-
-        if (window.createImageBitmap) {
-            const bitmap = await createImageBitmap(blob);
-            return { bitmap, w: bitmap.width, h: bitmap.height, orientation, source: 'bitmap' };
         }
 
-        // Fallback decode path
-        const objUrl = URL.createObjectURL(blob);
-        const img = new Image();
-        img.src = objUrl;
-        await new Promise((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = (e) => reject(e);
-        });
-
-        const w = img.naturalWidth;
-        const h = img.naturalHeight;
-        // Convert to bitmap-like via offscreen canvas
-        const tmp = document.createElement('canvas');
-        tmp.width = w;
-        tmp.height = h;
-        const tctx = tmp.getContext('2d');
-        tctx.drawImage(img, 0, 0, w, h);
-        URL.revokeObjectURL(objUrl);
-
-        // createImageBitmap might still exist but failed earlier; we avoid re-calling and just return canvas as drawable
-        return { bitmap: tmp, w, h, orientation, source: 'canvas' };
-    }
-
-    let _displayNameResolver = null;
-
-    function openDisplayNameModal(isEditOnly = false) {
-        if (!displayNameModal) return;
-        displayNameError.style.display = 'none';
-        displayNameError.textContent = '';
-
-        // Prefill for edit convenience
-        displayNameInput.value = (currentDisplayName || '').trim();
-
-        displayNameSaveBtn.disabled = false;
-        displayNameSaveBtn.textContent = isEditOnly ? '保存' : '保存并分享';
-        displayNameModal.dataset.mode = isEditOnly ? 'edit' : 'share';
-        displayNameModal.classList.add('active');
-        setTimeout(() => {
-            displayNameInput.focus();
-            displayNameInput.select();
-        }, 80);
-    }
-
-    function closeDisplayNameModal(result) {
-        if (!displayNameModal) return;
-        displayNameModal.classList.remove('active');
-        if (_displayNameResolver) {
-            _displayNameResolver(!!result);
-            _displayNameResolver = null;
-        }
-    }
-
-    async function saveDisplayNameFromModal() {
-        const name = (displayNameInput.value || '').trim();
-        if (!name) {
-            displayNameError.textContent = '署名不能为空';
-            displayNameError.style.display = 'block';
-            return;
+        function resetDeleteBtn() {
+            const delBtn = document.querySelector('.btn-delete');
+            if (delBtn) {
+                delBtn.classList.remove('confirming');
+                delBtn.textContent = "删除";
+            }
+            if (deleteConfirmTimer) clearTimeout(deleteConfirmTimer);
         }
 
-        const mode = displayNameModal?.dataset?.mode || 'share';
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-        displayNameSaveBtn.disabled = true;
-        displayNameSaveBtn.textContent = '保存中...';
+        // ================= Share =================
+        function generateShareCard() {
+            document.getElementById('cardPercentNum').textContent = currentLifePercent;
+            document.getElementById('cardProgressFill').style.width = currentLifePercent + '%';
+            document.querySelector('.card-date-text').textContent = new Date().toLocaleDateString();
 
-        const ok = await updateUserProfile(name);
-        if (ok) {
-            closeDisplayNameModal(true);
-        } else {
+            html2canvas(document.getElementById('share-card'), { scale: 2, backgroundColor: null }).then(canvas => {
+                const imgContainer = document.getElementById('imgContainer');
+                imgContainer.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = canvas.toDataURL('image/png');
+                img.id = 'shareResultImg';
+                imgContainer.appendChild(img);
+                document.getElementById('shareResultModal').classList.add('active');
+            });
+        }
+
+        function formatDateISO(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}.${m}.${day}`;
+        }
+
+        function applyExifOrientationTransform(ctx, orientation, w, h) {
+            // orientation: 1..8
+            switch (orientation) {
+                case 2: // mirror horizontal
+                    ctx.translate(w, 0);
+                    ctx.scale(-1, 1);
+                    break;
+                case 3: // rotate 180
+                    ctx.translate(w, h);
+                    ctx.rotate(Math.PI);
+                    break;
+                case 4: // mirror vertical
+                    ctx.translate(0, h);
+                    ctx.scale(1, -1);
+                    break;
+                case 5: // mirror vertical + rotate 90 CW
+                    ctx.rotate(0.5 * Math.PI);
+                    ctx.scale(1, -1);
+                    break;
+                case 6: // rotate 90 CW
+                    ctx.rotate(0.5 * Math.PI);
+                    ctx.translate(0, -h);
+                    break;
+                case 7: // mirror vertical + rotate 90 CCW
+                    ctx.rotate(-0.5 * Math.PI);
+                    ctx.translate(-w, 0);
+                    ctx.scale(1, -1);
+                    break;
+                case 8: // rotate 90 CCW
+                    ctx.rotate(-0.5 * Math.PI);
+                    ctx.translate(-w, 0);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        async function loadAndNormalizeImageBitmap(imageUrl) {
+            // Fetch once, decode once, return a bitmap + intrinsic size.
+            // Note: EXIF orientation mainly affects JPEG; for safety we still try to read it.
+            // Returns: { bitmap, w, h, orientation, source } where source indicates decode path.
+            const resp = await fetch(imageUrl, { mode: 'cors', cache: 'force-cache' });
+            if (!resp.ok) throw new Error('Image fetch failed: ' + resp.status);
+            const blob = await resp.blob();
+
+            const orientation = await new Promise((resolve) => {
+                if (!window.EXIF) return resolve(1);
+                try {
+                    EXIF.getData(blob, function () {
+                        const o = EXIF.getTag(this, 'Orientation');
+                        resolve(o || 1);
+                    });
+                } catch (e) {
+                    resolve(1);
+                }
+            });
+
+            if (window.createImageBitmap) {
+                const bitmap = await createImageBitmap(blob);
+                return { bitmap, w: bitmap.width, h: bitmap.height, orientation, source: 'bitmap' };
+            }
+
+            // Fallback decode path
+            const objUrl = URL.createObjectURL(blob);
+            const img = new Image();
+            img.src = objUrl;
+            await new Promise((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = (e) => reject(e);
+            });
+
+            const w = img.naturalWidth;
+            const h = img.naturalHeight;
+            // Convert to bitmap-like via offscreen canvas
+            const tmp = document.createElement('canvas');
+            tmp.width = w;
+            tmp.height = h;
+            const tctx = tmp.getContext('2d');
+            tctx.drawImage(img, 0, 0, w, h);
+            URL.revokeObjectURL(objUrl);
+
+            // createImageBitmap might still exist but failed earlier; we avoid re-calling and just return canvas as drawable
+            return { bitmap: tmp, w, h, orientation, source: 'canvas' };
+        }
+
+        let _displayNameResolver = null;
+
+        function openDisplayNameModal(isEditOnly = false) {
+            if (!displayNameModal) return;
+            displayNameError.style.display = 'none';
+            displayNameError.textContent = '';
+
+            // Prefill for edit convenience
+            displayNameInput.value = (currentDisplayName || '').trim();
+
             displayNameSaveBtn.disabled = false;
-            displayNameSaveBtn.textContent = mode === 'edit' ? '保存' : '保存并分享';
+            displayNameSaveBtn.textContent = isEditOnly ? '保存' : '保存并分享';
+            displayNameModal.dataset.mode = isEditOnly ? 'edit' : 'share';
+            displayNameModal.classList.add('active');
+            setTimeout(() => {
+                displayNameInput.focus();
+                displayNameInput.select();
+            }, 80);
         }
-    }
 
-    if (displayNameModal) {
-        displayNameModal.addEventListener('click', (e) => {
-            if (e.target === displayNameModal) closeDisplayNameModal(false);
-        });
-    }
-
-    if (displayNameInput) {
-        displayNameInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                saveDisplayNameFromModal();
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                closeDisplayNameModal(false);
-            }
-        });
-    }
-
-    async function ensureDisplayNameBeforeShare() {
-        if (!currentUser) {
-            alert('请先登录后再分享（需要绑定你的署名）。');
-            return false;
-        }
-        if (currentDisplayName && currentDisplayName.trim()) return true;
-
-        openDisplayNameModal(false);
-        return await new Promise((resolve) => {
-            _displayNameResolver = resolve;
-        });
-    }
-
-    async function generatePolaroidShareCard({ dateStrISO, age, note, imageUrl }) {
-        const ok = await ensureDisplayNameBeforeShare();
-        if (!ok) return;
-
-        const container = document.getElementById('share-card-container');
-
-        // Remove any old polaroid cards to avoid capturing stale content
-        container.querySelectorAll('.polaroid-card').forEach(n => n.remove());
-
-        const card = document.createElement('div');
-        card.className = 'polaroid-card';
-        card.id = 'polaroid-share-card';
-
-        const hasImg = !!imageUrl;
-        const safeNote = (note || '').trim();
-
-        let normalized = null;
-        if (hasImg) {
-            try {
-                normalized = await loadAndNormalizeImageBitmap(imageUrl);
-            } catch (e) {
-                console.warn('loadAndNormalizeImageBitmap failed:', e);
-                normalized = null;
+        function closeDisplayNameModal(result) {
+            if (!displayNameModal) return;
+            displayNameModal.classList.remove('active');
+            if (_displayNameResolver) {
+                _displayNameResolver(!!result);
+                _displayNameResolver = null;
             }
         }
 
-        card.innerHTML = `
+        async function saveDisplayNameFromModal() {
+            const name = (displayNameInput.value || '').trim();
+            if (!name) {
+                displayNameError.textContent = '署名不能为空';
+                displayNameError.style.display = 'block';
+                return;
+            }
+
+            const mode = displayNameModal?.dataset?.mode || 'share';
+
+            displayNameSaveBtn.disabled = true;
+            displayNameSaveBtn.textContent = '保存中...';
+
+            const ok = await updateUserProfile(name);
+            if (ok) {
+                closeDisplayNameModal(true);
+            } else {
+                displayNameSaveBtn.disabled = false;
+                displayNameSaveBtn.textContent = mode === 'edit' ? '保存' : '保存并分享';
+            }
+        }
+
+        if (displayNameModal) {
+            displayNameModal.addEventListener('click', (e) => {
+                if (e.target === displayNameModal) closeDisplayNameModal(false);
+            });
+        }
+
+        if (displayNameInput) {
+            displayNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveDisplayNameFromModal();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeDisplayNameModal(false);
+                }
+            });
+        }
+
+        async function ensureDisplayNameBeforeShare() {
+            if (!currentUser) {
+                showToast('请先登录后再分享（需要绑定你的署名）。', 'error');
+                return false;
+            }
+            if (currentDisplayName && currentDisplayName.trim()) return true;
+
+            openDisplayNameModal(false);
+            return await new Promise((resolve) => {
+                _displayNameResolver = resolve;
+            });
+        }
+
+        async function generatePolaroidShareCard({ dateStrISO, age, note, imageUrl }) {
+            const ok = await ensureDisplayNameBeforeShare();
+            if (!ok) return;
+
+            const container = document.getElementById('share-card-container');
+
+            // Remove any old polaroid cards to avoid capturing stale content
+            container.querySelectorAll('.polaroid-card').forEach(n => n.remove());
+
+            const card = document.createElement('div');
+            card.className = 'polaroid-card';
+            card.id = 'polaroid-share-card';
+
+            const hasImg = !!imageUrl;
+            const safeNote = (note || '').trim();
+
+            let normalized = null;
+            if (hasImg) {
+                try {
+                    normalized = await loadAndNormalizeImageBitmap(imageUrl);
+                } catch (e) {
+                    console.warn('loadAndNormalizeImageBitmap failed:', e);
+                    normalized = null;
+                }
+            }
+
+            card.innerHTML = `
             <div class="polaroid-photo">
                 ${hasImg ? `<canvas id="polaroidPhotoCanvas"></canvas>` : `<div class="polaroid-noimg">No photo</div>`}
             </div>
@@ -1077,194 +2047,195 @@
             </div>
         `;
 
-        container.appendChild(card);
+            container.appendChild(card);
 
-        // Draw photo into canvas (avoids html2canvas image scaling bugs)
-        if (hasImg) {
-            const photoBox = card.querySelector('.polaroid-photo');
-            const photoCanvas = card.querySelector('#polaroidPhotoCanvas');
+            // Draw photo into canvas (avoids html2canvas image scaling bugs)
+            if (hasImg) {
+                const photoBox = card.querySelector('.polaroid-photo');
+                const photoCanvas = card.querySelector('#polaroidPhotoCanvas');
 
-            const boxW = photoBox.clientWidth;
-            const boxH = photoBox.clientHeight;
-            const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
-            photoCanvas.width = Math.round(boxW * dpr);
-            photoCanvas.height = Math.round(boxH * dpr);
-            photoCanvas.style.width = boxW + 'px';
-            photoCanvas.style.height = boxH + 'px';
+                const boxW = photoBox.clientWidth;
+                const boxH = photoBox.clientHeight;
+                const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+                photoCanvas.width = Math.round(boxW * dpr);
+                photoCanvas.height = Math.round(boxH * dpr);
+                photoCanvas.style.width = boxW + 'px';
+                photoCanvas.style.height = boxH + 'px';
 
-            const ctx = photoCanvas.getContext('2d');
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
+                const ctx = photoCanvas.getContext('2d');
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, photoCanvas.width, photoCanvas.height);
 
-            // Paper-like background
-            ctx.fillStyle = '#e9e7e0';
-            ctx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
+                // Paper-like background
+                ctx.fillStyle = '#e9e7e0';
+                ctx.fillRect(0, 0, photoCanvas.width, photoCanvas.height);
 
-            if (!normalized || !normalized.bitmap) {
-                // Last resort: try direct draw from URL (may fail if CORS)
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.src = imageUrl;
-                await new Promise((resolve) => { img.onload = () => resolve(); img.onerror = () => resolve(); });
-                const srcW = img.naturalWidth || photoCanvas.width;
-                const srcH = img.naturalHeight || photoCanvas.height;
-                const scale = Math.min(photoCanvas.width / srcW, photoCanvas.height / srcH);
-                const drawW = Math.round(srcW * scale);
-                const drawH = Math.round(srcH * scale);
-                const dx = Math.round((photoCanvas.width - drawW) / 2);
-                const dy = Math.round((photoCanvas.height - drawH) / 2);
-                ctx.drawImage(img, 0, 0, srcW, srcH, dx, dy, drawW, drawH);
-            } else {
-                // If EXIF orientation indicates rotation/flip, apply it here before drawing.
-                // Most PNG will have orientation=1 (no-op).
-                const { bitmap, w: srcW, h: srcH, orientation } = normalized;
-
-                // Draw into an intermediate canvas if we need to apply orientation transforms.
-                let drawable = bitmap;
-                let dw = srcW;
-                let dh = srcH;
-
-                if (orientation && orientation !== 1) {
-                    const tmp = document.createElement('canvas');
-                    const tctx = tmp.getContext('2d');
-                    if ([5, 6, 7, 8].includes(orientation)) {
-                        tmp.width = srcH;
-                        tmp.height = srcW;
-                    } else {
-                        tmp.width = srcW;
-                        tmp.height = srcH;
-                    }
-                    applyExifOrientationTransform(tctx, orientation, srcW, srcH);
-                    tctx.drawImage(bitmap, 0, 0, srcW, srcH);
-                    drawable = tmp;
-                    dw = tmp.width;
-                    dh = tmp.height;
-                }
-
-                const scale = Math.min(photoCanvas.width / dw, photoCanvas.height / dh);
-                const drawW = Math.round(dw * scale);
-                const drawH = Math.round(dh * scale);
-                const dx = Math.round((photoCanvas.width - drawW) / 2);
-                const dy = Math.round((photoCanvas.height - drawH) / 2);
-                ctx.drawImage(drawable, 0, 0, dw, dh, dx, dy, drawW, drawH);
-            }
-        }
-
-        html2canvas(card, { scale: 2, backgroundColor: '#f7f6f2' }).then(canvas => {
-            const imgContainer = document.getElementById('imgContainer');
-            imgContainer.innerHTML = '';
-            const img = document.createElement('img');
-            img.src = canvas.toDataURL('image/png');
-            img.id = 'shareResultImg';
-            imgContainer.appendChild(img);
-            document.getElementById('shareResultModal').classList.add('active');
-        });
-    }
-
-    // ================= Grid Renderer =================
-    function renderGrid() {
-        const sidebarImgBox = document.getElementById('sidebarImageContainer');
-        const sidebarImg = document.getElementById('sidebarImage');
-        gridEl.innerHTML = '';
-        const birthdate = new Date(dateInput.value);
-        const today = new Date();
-        const oneWeek = 1000 * 60 * 60 * 24 * 7;
-        
-        let diffWeeks = Math.floor((today - birthdate) / oneWeek);
-        diffWeeks = Math.max(0, Math.min(diffWeeks, TOTAL_WEEKS));
-        
-        currentLifePercent = ((diffWeeks / TOTAL_WEEKS) * 100).toFixed(1);
-        const left = TOTAL_WEEKS - diffWeeks;
-        
-        statsEl.innerHTML = `Used: <strong>${diffWeeks}</strong> weeks (${currentLifePercent}%)<br>Remaining: <strong>${left}</strong> weeks`;
-
-        const frag = document.createDocumentFragment();
-        for (let i = 0; i < TOTAL_WEEKS; i++) {
-            const div = document.createElement('div');
-            div.className = 'cell';
-            const age = Math.floor(i / WEEKS_PER_YEAR);
-            const year = birthdate.getFullYear() + age;
-            
-            let note = null, hasImage = false;
-            const rawData = milestones[i];
-            if (rawData) {
-                if (typeof rawData === 'string') note = rawData;
-                else { note = rawData.content; hasImage = !!rawData.image_url; }
-            }
-            
-            const isPast = i < diffWeeks;
-            const isCurrent = i === diffWeeks;
-            const isBirth = i === 0;
-
-            if (isPast) div.classList.add('past');
-            else if (isCurrent) div.classList.add('current');
-            if (isBirth) div.classList.add('birth');
-            else if (note || hasImage) div.classList.add('milestone');
-            
-            if (hasImage) div.style.boxShadow = "inset 0 0 0 1px var(--ink-color)"; 
-
-            const showInfo = () => {
-                hoverInfoEl.className = 'hover-info';
-                let infoText = '';
-                
-                if (hasImage && rawData.image_url) {
-                    sidebarImg.src = rawData.image_url; sidebarImgBox.classList.add('active');
+                if (!normalized || !normalized.bitmap) {
+                    // Last resort: try direct draw from URL (may fail if CORS)
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.src = imageUrl;
+                    await new Promise((resolve) => { img.onload = () => resolve(); img.onerror = () => resolve(); });
+                    const srcW = img.naturalWidth || photoCanvas.width;
+                    const srcH = img.naturalHeight || photoCanvas.height;
+                    const scale = Math.min(photoCanvas.width / srcW, photoCanvas.height / srcH);
+                    const drawW = Math.round(srcW * scale);
+                    const drawH = Math.round(srcH * scale);
+                    const dx = Math.round((photoCanvas.width - drawW) / 2);
+                    const dy = Math.round((photoCanvas.height - drawH) / 2);
+                    ctx.drawImage(img, 0, 0, srcW, srcH, dx, dy, drawW, drawH);
                 } else {
-                    sidebarImgBox.classList.remove('active'); sidebarImg.src = '';
+                    // If EXIF orientation indicates rotation/flip, apply it here before drawing.
+                    // Most PNG will have orientation=1 (no-op).
+                    const { bitmap, w: srcW, h: srcH, orientation } = normalized;
+
+                    // Draw into an intermediate canvas if we need to apply orientation transforms.
+                    let drawable = bitmap;
+                    let dw = srcW;
+                    let dh = srcH;
+
+                    if (orientation && orientation !== 1) {
+                        const tmp = document.createElement('canvas');
+                        const tctx = tmp.getContext('2d');
+                        if ([5, 6, 7, 8].includes(orientation)) {
+                            tmp.width = srcH;
+                            tmp.height = srcW;
+                        } else {
+                            tmp.width = srcW;
+                            tmp.height = srcH;
+                        }
+                        applyExifOrientationTransform(tctx, orientation, srcW, srcH);
+                        tctx.drawImage(bitmap, 0, 0, srcW, srcH);
+                        drawable = tmp;
+                        dw = tmp.width;
+                        dh = tmp.height;
+                    }
+
+                    const scale = Math.min(photoCanvas.width / dw, photoCanvas.height / dh);
+                    const drawW = Math.round(dw * scale);
+                    const drawH = Math.round(dh * scale);
+                    const dx = Math.round((photoCanvas.width - drawW) / 2);
+                    const dy = Math.round((photoCanvas.height - drawH) / 2);
+                    ctx.drawImage(drawable, 0, 0, dw, dh, dx, dy, drawW, drawH);
                 }
+            }
 
-                if (isBirth) { infoText = `👶 Born in ${year}`; hoverInfoEl.classList.add('gold-text'); }
-                else if (note || hasImage) { 
-                    const contentText = note || "📸 Image Memory";
-                    infoText = `📌 ${contentText} (Age ${age})`; hoverInfoEl.classList.add('blue-text'); 
-                }
-                else if (isCurrent) infoText = 'NOW · 此刻';
-                else infoText = `${year} (Age ${age})`;
-                
-                hoverInfoEl.textContent = infoText;
-            };
-
-            const edit = () => openModal(i, rawData, age);
-
-            div.addEventListener('mouseenter', showInfo);
-            div.addEventListener('click', e => {
-                e.stopPropagation();
-                if (window.innerWidth <= 768) {
-                    if (lastClickedIndex !== i) {
-                        showInfo();
-                        document.querySelector('.cell.selected')?.classList.remove('selected');
-                        div.classList.add('selected');
-                        lastClickedIndex = i;
-                    } else { edit(); div.classList.remove('selected'); lastClickedIndex = -1; }
-                } else { showInfo(); edit(); }
+            html2canvas(card, { scale: 2, backgroundColor: '#f7f6f2' }).then(canvas => {
+                const imgContainer = document.getElementById('imgContainer');
+                imgContainer.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = canvas.toDataURL('image/png');
+                img.id = 'shareResultImg';
+                imgContainer.appendChild(img);
+                document.getElementById('shareResultModal').classList.add('active');
             });
-            frag.appendChild(div);
         }
-        gridEl.appendChild(frag);
-        gridEl.addEventListener('mouseleave', () => { 
-            if (window.innerWidth > 768) {
-                hoverInfoEl.textContent = ''; sidebarImgBox.classList.remove('active'); sidebarImg.src = '';
+
+        // ================= Grid Renderer =================
+        function renderGrid() {
+            const sidebarImgBox = document.getElementById('sidebarImageContainer');
+            const sidebarImg = document.getElementById('sidebarImage');
+            gridEl.innerHTML = '';
+            const birthdate = new Date(dateInput.value);
+            const today = new Date();
+            const oneWeek = 1000 * 60 * 60 * 24 * 7;
+
+            let diffWeeks = Math.floor((today - birthdate) / oneWeek);
+            diffWeeks = Math.max(0, Math.min(diffWeeks, TOTAL_WEEKS));
+
+            currentLifePercent = ((diffWeeks / TOTAL_WEEKS) * 100).toFixed(1);
+            const left = TOTAL_WEEKS - diffWeeks;
+
+            statsEl.innerHTML = `已收藏: <strong>${diffWeeks}</strong> 周 (${currentLifePercent}%)<br>待探索: <strong>${left}</strong> 周`;
+
+            const frag = document.createDocumentFragment();
+            for (let i = 0; i < TOTAL_WEEKS; i++) {
+                const div = document.createElement('div');
+                div.className = 'cell';
+                const age = Math.floor(i / WEEKS_PER_YEAR);
+                const year = birthdate.getFullYear() + age;
+
+                let note = null, hasImage = false;
+                const rawData = milestones[i];
+                if (rawData) {
+                    if (typeof rawData === 'string') note = rawData;
+                    else { note = rawData.content; hasImage = !!rawData.image_url; }
+                }
+
+                const isPast = i < diffWeeks;
+                const isCurrent = i === diffWeeks;
+                const isBirth = i === 0;
+
+                if (isPast) div.classList.add('past');
+                else if (isCurrent) div.classList.add('current');
+                if (isBirth) div.classList.add('birth');
+                else if (note || hasImage) div.classList.add('milestone');
+
+                if (hasImage) div.style.boxShadow = "inset 0 0 0 1px var(--ink-color)";
+
+                const showInfo = () => {
+                    hoverInfoEl.className = 'hover-info';
+                    let infoText = '';
+
+                    if (hasImage && rawData.image_url) {
+                        sidebarImg.src = rawData.image_url; sidebarImgBox.classList.add('active');
+                    } else {
+                        sidebarImgBox.classList.remove('active'); sidebarImg.src = '';
+                    }
+
+                    if (isBirth) { infoText = `👶 ${year} · 一切的开始`; hoverInfoEl.classList.add('gold-text'); }
+                    else if (note || hasImage) {
+                        const contentText = note || "📸 影像记忆";
+                        infoText = `📌 ${contentText} (Age ${age})`; hoverInfoEl.classList.add('blue-text');
+                    }
+                    else if (isCurrent) infoText = 'NOW · 此刻';
+                    else infoText = `${year} (Age ${age})`;
+
+                    hoverInfoEl.textContent = infoText;
+                };
+
+                const edit = () => openModal(i, rawData, age);
+
+                div.addEventListener('mouseenter', showInfo);
+                div.addEventListener('click', e => {
+                    e.stopPropagation();
+                    if (window.innerWidth <= 768) {
+                        if (lastClickedIndex !== i) {
+                            showInfo();
+                            document.querySelector('.cell.selected')?.classList.remove('selected');
+                            div.classList.add('selected');
+                            lastClickedIndex = i;
+                        } else { edit(); div.classList.remove('selected'); lastClickedIndex = -1; }
+                    } else { showInfo(); edit(); }
+                });
+                frag.appendChild(div);
+            }
+            gridEl.appendChild(frag);
+            gridEl.addEventListener('mouseleave', () => {
+                if (window.innerWidth > 768) {
+                    hoverInfoEl.textContent = ''; sidebarImgBox.classList.remove('active'); sidebarImg.src = '';
+                }
+            });
+        }
+
+        // ================= Init =================
+        const savedBirth = localStorage.getItem('lifeGridBirthdate');
+        if (savedBirth) dateInput.value = savedBirth;
+
+        dateInput.addEventListener('change', () => {
+            localStorage.setItem('lifeGridBirthdate', dateInput.value);
+            renderGrid();
+            if (timelineEl && !timelineEl.classList.contains('hidden')) renderTimeline();
+        });
+
+        document.body.addEventListener('click', e => {
+            if (window.innerWidth <= 768 && !e.target.classList.contains('cell')) {
+                document.querySelector('.cell.selected')?.classList.remove('selected');
+                lastClickedIndex = -1; hoverInfoEl.textContent = '';
             }
         });
-    }
-
-    // ================= Init =================
-    const savedBirth = localStorage.getItem('lifeGridBirthdate');
-    if (savedBirth) dateInput.value = savedBirth;
-    
-    dateInput.addEventListener('change', () => { 
-        localStorage.setItem('lifeGridBirthdate', dateInput.value); 
         renderGrid();
-        if (timelineEl && !timelineEl.classList.contains('hidden')) renderTimeline();
-    });
-    
-    document.body.addEventListener('click', e => {
-        if (window.innerWidth <= 768 && !e.target.classList.contains('cell')) {
-            document.querySelector('.cell.selected')?.classList.remove('selected');
-            lastClickedIndex = -1; hoverInfoEl.textContent = ''; 
-        }
-    });
-    renderGrid();
-</script>
+    </script>
 </body>
+
 </html>
