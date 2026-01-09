@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Life Grid (v2.2.1 Fixed)</title>
+    <title>Life Grid · 时光绘本</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
@@ -219,9 +219,7 @@
         }
 
 
-        color: #666;
-        line-height: 1.5;
-        }
+
 
         .hover-info {
             height: 30px;
@@ -1126,7 +1124,7 @@
             <div class="hover-info" id="hoverInfo"></div>
 
             <div style="margin-top: 30px; font-size: 0.8rem; color: #bbb; text-align: center;">
-                <a href="#" onclick="showToast('加微信: muyunlee2025 (备注: LifeGrid)')"
+                <a href="#" onclick="showToast('加微信: muyunlee2025 (备注: Life Grid · 时光绘本)')"
                     style="color: #999; text-decoration: none; border-bottom: 1px dashed #ccc;">给作者留言</a>
             </div>
         </aside>
@@ -1232,7 +1230,7 @@
 
     <div id="share-card-container">
         <div id="share-card" class="share-card">
-            <div class="card-header"><span>Life Grid</span><span class="card-date-text">2026.01.02</span></div>
+            <div class="card-header"><span>Life Grid · 时光绘本</span><span class="card-date-text">2026.01.02</span></div>
             <div class="card-main">
                 <div class="card-percent-container"><span class="card-percent-num" id="cardPercentNum">0.0</span><span
                         class="card-percent-unit">%</span></div>
@@ -1243,7 +1241,7 @@
             </div>
             <div class="card-footer">
                 <div class="card-quote">"种一棵树最好的时间是十年前，<br>其次是现在。"</div>
-                <div class="card-author">Designed by 牧云 | Life Grid</div>
+                <div class="card-author">Designed by 牧云</div>
             </div>
         </div>
     </div>
@@ -2043,7 +2041,7 @@
                     <div class="polaroid-age">Age ${age}</div>
                 </div>
                 <div class="polaroid-note">${safeNote || ''}</div>
-                <div class="polaroid-watermark">Life Grid - Recorded by ${escapeHtml(currentDisplayName || '')}</div>
+                <div class="polaroid-watermark">Life Grid · 时光绘本 - Recorded by ${escapeHtml(currentDisplayName || '')}</div>
             </div>
         `;
 
